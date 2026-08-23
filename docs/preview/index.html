@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Yellow Pixels — Preview</title>
+<style>
+  :root {
+    --bg: #000; --fg: rgba(240,240,250,1);
+    --mute: rgba(240,240,250,.4); --surface: rgba(240,240,250,.06);
+    --yellow: #ffdb47; --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, monospace; --bar-h: 36px; --panel-w: 420px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: #000; color: var(--fg); font-family: var(--font); }
+  body {
+    background:
+      radial-gradient(ellipse 60% 40% at 75% 15%, rgba(255,219,71,.08), transparent 55%),
+      linear-gradient(180deg, #0a0a0c, #000);
+  }
+  .banner {
+    height: 28px; display: flex; align-items: center; justify-content: center;
+    background: #121218; border-bottom: 1px solid rgba(240,240,250,.08);
+    font-size: 11px; letter-spacing: .06em; color: var(--mute); font-family: var(--mono);
+  }
+  .bar {
+    height: var(--bar-h); display: flex; align-items: center; justify-content: space-between;
+    padding: 0 12px 0 16px; background: rgba(12,12,14,.88); backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(240,240,250,.06);
+  }
+  .bar-brand { font-size: 11px; letter-spacing: .18em; opacity: .85; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px;
+    border-radius: 6px; background: rgba(240,240,250,.08); font-size: 12px; cursor: pointer;
+  }
+  .pill .dot { color: var(--yellow); }
+  .wrap { position: relative; height: calc(100% - 28px - var(--bar-h)); }
+  .hint {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    opacity: .14; letter-spacing: .35em; text-transform: uppercase; font-size: 13px; pointer-events: none;
+  }
+  .panel {
+    position: absolute; top: 16px; right: 16px; width: var(--panel-w);
+    background: linear-gradient(180deg, #121216, #0a0a0c); border: 1px solid rgba(240,240,250,.1);
+    border-radius: 14px; padding: 16px; box-shadow: 0 18px 48px rgba(0,0,0,.65);
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .head h1 { font-size: 13px; letter-spacing: .22em; font-weight: 700; display: flex; gap: 8px; align-items: center; }
+  .head h1 .dot { color: var(--yellow); }
+  .head .sub { font-size: 11px; color: var(--mute); margin-top: 4px; }
+  .chips, .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip, .tab, .btn, .copy {
+    border: 1px solid rgba(240,240,250,.12); background: var(--surface); color: var(--fg);
+    border-radius: 6px; padding: 5px 10px; font-size: 11px; cursor: pointer;
+  }
+  .chip.on { background: rgba(255,219,71,.22); border-color: rgba(255,219,71,.55); font-weight: 700; }
+  .tab.on { background: rgba(240,240,250,.12); font-weight: 700; }
+  .field {
+    background: var(--surface); border: 1px solid rgba(240,240,250,.12);
+    border-radius: 6px; padding: 8px 10px; font-size: 12px; color: var(--mute);
+  }
+  .lookup {
+    background: rgba(255,219,71,.28); border: 1px solid rgba(255,219,71,.55);
+    border-radius: 8px; padding: 9px; text-align: center; font-weight: 700; font-size: 12px; cursor: pointer;
+  }
+  .card {
+    background: var(--surface); border: 1px solid rgba(240,240,250,.1);
+    border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .row { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+  .lbl { font-size: 10px; color: var(--mute); }
+  .val { font-size: 12px; margin-top: 2px; word-break: break-all; }
+  .banner-keys {
+    background: rgba(255,219,71,.1); border: 1px solid rgba(255,219,71,.35);
+    border-radius: 8px; padding: 10px; font-size: 12px;
+  }
+  .banner-keys strong { color: var(--yellow); }
+  .foot { font-size: 10px; color: var(--mute); opacity: .7; }
+</style>
+</head>
+<body>
+  <div class="banner">static mock · harris.yellow-pixels · not live APIs</div>
+  <div class="bar">
+    <div class="bar-brand">OMARCHY</div>
+    <div class="pill"><span class="dot">●</span> YP</div>
+  </div>
+  <div class="wrap">
+    <div class="hint">desktop</div>
+    <div class="panel">
+      <div class="head">
+        <h1><span class="dot">●</span> YELLOW PIXELS</h1>
+        <div class="sub">individual lookup · not for blast outbound</div>
+      </div>
+      <div class="chips">
+        <span class="chip">LeadMagic</span>
+        <span class="chip">ZoomInfo</span>
+        <span class="chip on">Waterfall</span>
+      </div>
+      <div class="banner-keys"><strong>Add API key in widget settings</strong><br/>LeadMagic and/or ZoomInfo / GTM.AI bearer token</div>
+      <div class="tabs">
+        <span class="tab on">Email</span>
+        <span class="tab">Profile URL</span>
+        <span class="tab">Name + company</span>
+        <span class="tab">Phone</span>
+      </div>
+      <div class="field">alex@example.com</div>
+      <div class="lookup">Lookup</div>
+      <div class="card">
+        <div class="row">
+          <strong style="font-size:12px">Result · waterfall · ok</strong>
+          <span class="copy">Copy all</span>
+        </div>
+        <div class="row">
+          <div><div class="lbl">Name · leadmagic</div><div class="val">Alex Example</div></div>
+          <span class="copy">Copy</span>
+        </div>
+        <div class="row">
+          <div><div class="lbl">Email · zoominfo</div><div class="val">alex@example.com</div></div>
+          <span class="copy">Copy</span>
+        </div>
+        <div class="row">
+          <div><div class="lbl">LinkedIn · leadmagic</div><div class="val">https://www.linkedin.com/in/alex</div></div>
+          <span class="copy">Copy</span>
+        </div>
+      </div>
+      <div class="foot">Unofficial · LeadMagic / ZoomInfo / GTM.AI · individual follow-up only</div>
+    </div>
+  </div>
+</body>
+</html>
