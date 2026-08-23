@@ -80,9 +80,8 @@ BarWidget {
   }
 
   function onBarMiddleClick() {
-    // Focus panel for a fresh lookup; do not auto-fire paid APIs.
-    if (!root.opened)
-      root.open()
+    // Useful middle-click: clear last result (+ cache) with toast — do not auto-fire paid APIs.
+    yellowStore.clearResult()
   }
 
   function injectPanel() {
@@ -156,7 +155,7 @@ BarWidget {
         tip += " · looking up…"
       else if (yellowStore.lastUpdatedText && yellowStore.lastUpdatedText !== "never")
         tip += " · last " + yellowStore.lastUpdatedText
-      tip += " · not for blast outbound"
+      tip += " · middle: clear · not for blast outbound"
       return tip
     }
     onPressed: function(buttonCode) {

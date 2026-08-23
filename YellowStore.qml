@@ -4,6 +4,7 @@ import Quickshell.Io
 
 // Yellow Pixels — runs scripts/lookup.py via Process; parses JSON stdout.
 // Individual follow-up only. Not a sequencer.
+// Caches last successful result to ~/.cache/yellow-pixels/last.json (never API keys).
 QtObject {
   id: store
 
@@ -23,10 +24,13 @@ QtObject {
   property bool loading: false
   property string lastError: ""
   property string toastText: ""
-  property var lastResult: null   // full JSON from lookup.py
+  property var lastResult: null   // full JSON from lookup.py (no keys)
   property string lookupBuf: ""
   property string lookedUpAt: ""
+  property string dataSource: "none"   // disk | lookup | none
 
+  readonly property string cacheDir: Quickshell.env("HOME") + "/.cache/yellow-pixels"
+  readonly property string cachePath: cacheDir + "/last.json"
   readonly property string pluginDir: String(Qt.resolvedUrl("."))
     .replace(/^file:\/\//, "")
     .replace(/\/$/, "")
@@ -45,14 +49,16 @@ QtObject {
     return store.hasLeadmagicKey || store.hasZoominfoToken
   }
 
+  readonly property bool hasCachedResult: !!(store.lastResult && typeof store.lastResult === "object")
+
   readonly property string keysHint: {
     var mode = String(store.providerMode || "waterfall")
     if (store.hasAnyKey) return ""
     if (mode === "leadmagic")
-      return "Add LeadMagic API key in widget settings"
+      return "Keys — add LeadMagic API key in widget settings before Lookup."
     if (mode === "zoominfo")
-      return "Add ZoomInfo / GTM.AI bearer token in widget settings"
-    return "Add API key in widget settings (LeadMagic and/or ZoomInfo)"
+      return "Keys — add ZoomInfo / GTM.AI bearer token in widget settings before Lookup."
+    return "Keys — add LeadMagic and/or ZoomInfo in widget settings before Lookup."
   }
 
   signal dataChanged()
@@ -230,6 +236,7 @@ QtObject {
     var jsonBlob = JSON.stringify(store.buildInputs())
     var lm = String(store.leadmagicApiKey || "")
     var zi = String(store.zoominfoBearerToken || "")
+    // Keys only in process env for this one call — never written to cache/disk.
     lookupProc.command = [
       "env",
       "LEADMAGIC_API_KEY=" + lm,
@@ -242,6 +249,78 @@ QtObject {
     ]
     lookupProc.running = true
     store.dataChanged()
+  }
+
+  function stripSecrets(obj) {
+    // Defensive: never persist anything that looks like a key/token.
+    if (!obj || typeof obj !== "object") return obj
+    var out = ({})
+    var skip = {
+      leadmagicApiKey: true,
+      zoominfoBearerToken: true,
+      apiKey: true,
+      api_key: true,
+      token: true,
+      bearer: true,
+      authorization: true
+    }
+    for (var k in obj) {
+      if (!Object.prototype.hasOwnProperty.call(obj, k)) continue
+      if (skip[k]) continue
+      var v = obj[k]
+      if (v && typeof v === "object" && !Array.isArray(v))
+        out[k] = store.stripSecrets(v)
+      else
+        out[k] = v
+    }
+    return out
+  }
+
+  function buildCacheObject(resultObj, atIso) {
+    return {
+      version: 1,
+      lookedUpAt: atIso || store.lookedUpAt || "",
+      providerMode: store.normalizeProvider(store.providerMode),
+      inputMode: store.normalizeInputMode(store.inputMode),
+      // Snapshot of inputs used (no keys). Helps restore context; optional.
+      inputs: store.buildInputs(),
+      result: store.stripSecrets(resultObj || store.lastResult || ({}))
+    }
+  }
+
+  function persistToDisk(obj) {
+    var body = JSON.stringify(obj || store.buildCacheObject(), null, 2) + "\n"
+    ensureCacheDir.running = true
+    Qt.callLater(function() {
+      try {
+        cacheFile.setText(body)
+      } catch (e) {}
+    })
+  }
+
+  function persistClear() {
+    ensureCacheDir.running = true
+    Qt.callLater(function() {
+      try {
+        cacheFile.setText(JSON.stringify({ version: 1, cleared: true }, null, 2) + "\n")
+      } catch (e) {}
+    })
+  }
+
+  function applyCachedPayload(obj, source) {
+    if (!obj || typeof obj !== "object") return false
+    if (obj.cleared === true) return false
+    var res = obj.result
+    if (!res || typeof res !== "object") return false
+    // Accept either wrapped cache { result: <lookup json> } or raw lookup json
+    if (res.result === undefined && res.ok === undefined && obj.ok !== undefined)
+      res = obj
+    store.lastResult = store.stripSecrets(res)
+    store.lookedUpAt = obj.lookedUpAt || ""
+    store.dataSource = source || "disk"
+    store.lastError = ""
+    store.dataChanged()
+    return true
   }
 
   function onLookupFinished(exitCode) {
@@ -267,19 +346,23 @@ QtObject {
       blob = raw.trim()
     try {
       var obj = JSON.parse(blob)
-      store.lastResult = obj
+      store.lastResult = store.stripSecrets(obj)
       store.lookedUpAt = new Date().toISOString()
+      store.dataSource = "lookup"
       var errs = obj.errors || []
       if (errs && errs.length)
         store.lastError = String(errs[0])
       else
         store.lastError = ""
-      if (obj.ok)
+      if (obj.ok) {
         store.showToast("Lookup done")
-      else if (store.lastError)
+        // Cache successful results only — never API keys.
+        store.persistToDisk(store.buildCacheObject(obj, store.lookedUpAt))
+      } else if (store.lastError) {
         store.showToast(store.lastError)
-      else
+      } else {
         store.showToast("No match")
+      }
       store.dataChanged()
     } catch (e) {
       store.lastError = "lookup JSON parse failed"
@@ -291,7 +374,28 @@ QtObject {
     store.lastResult = null
     store.lastError = ""
     store.lookedUpAt = ""
+    store.dataSource = "none"
+    store.persistClear()
+    store.showToast("Cleared")
     store.dataChanged()
+  }
+
+  function loadDiskText(text) {
+    try {
+      var obj = JSON.parse(text || "{}")
+      return store.applyCachedPayload(obj, "disk")
+    } catch (e) {
+      return false
+    }
+  }
+
+  function bootstrap() {
+    cacheFile.reload()
+  }
+
+  function onCacheLoaded(text) {
+    if (text && text.length > 2)
+      store.loadDiskText(text)
   }
 
   function handleSummonPayload(obj) {
@@ -326,6 +430,10 @@ QtObject {
     if (obj.domain) { store.domainInput = String(obj.domain); acted = true }
     if (obj.company) { store.companyInput = String(obj.company); acted = true }
     if (obj.phone) { store.phoneInput = String(obj.phone); store.inputMode = "phone"; acted = true }
+    if (obj.clear === true || obj.clear === "true" || obj.clear === 1) {
+      store.clearResult()
+      acted = true
+    }
     if (obj.lookup === true || obj.lookup === "true" || obj.lookup === 1) {
       Qt.callLater(function() { store.lookup() })
       acted = true
@@ -333,11 +441,30 @@ QtObject {
     return acted
   }
 
+  Component.onCompleted: {
+    store.bootstrap()
+  }
+
   Timer {
     id: toastClear
     interval: 1800
     repeat: false
     onTriggered: store.toastText = ""
+  }
+
+  FileView {
+    id: cacheFile
+    path: store.cachePath
+    watchChanges: false
+    printErrors: false
+    onLoaded: store.onCacheLoaded(text())
+    onLoadFailed: { /* first run — no cache yet */ }
+  }
+
+  Process {
+    id: ensureCacheDir
+    command: ["mkdir", "-p", store.cacheDir]
+    running: false
   }
 
   Process {

@@ -176,7 +176,7 @@ Panel {
           }
         }
 
-        // Keys missing banner
+        // Keys missing — empty-state clarity (Security Theater Checks pattern)
         Rectangle {
           width: parent.width
           visible: liveStore && !liveStore.hasAnyKey
@@ -195,20 +195,30 @@ Panel {
             spacing: Style.space(4)
 
             Text {
-              text: "Add API key in widget settings"
+              text: "Keys"
               color: root.ypYellow
               font.family: root.contentFontFamily
               font.pixelSize: Style.font.size(12)
               font.bold: true
               width: parent.width
-              wrapMode: Text.WordWrap
             }
             Text {
-              text: liveStore ? (liveStore.keysHint || "") : ""
+              text: liveStore
+                ? (liveStore.keysHint || "Keys — add LeadMagic and/or ZoomInfo in widget settings before Lookup.")
+                : "Keys — add LeadMagic and/or ZoomInfo in widget settings before Lookup."
               color: root.contentForeground
               opacity: 0.55
               font.family: root.contentFontFamily
               font.pixelSize: Style.font.size(11)
+              width: parent.width
+              wrapMode: Text.WordWrap
+            }
+            Text {
+              text: "Open widget settings → LeadMagic API key and/or ZoomInfo bearer token. Defaults stay empty; never commit real keys."
+              color: root.contentForeground
+              opacity: 0.35
+              font.family: root.contentFontFamily
+              font.pixelSize: Style.font.size(10)
               width: parent.width
               wrapMode: Text.WordWrap
             }
@@ -303,11 +313,13 @@ Panel {
             spacing: Style.space(4)
             visible: liveStore && liveStore.inputMode === "profile"
             Text {
-              text: "LinkedIn or X/Twitter profile URL"
+              text: "LinkedIn or X/Twitter profile URL (LinkedIn hits more; X is best-effort)"
               color: root.contentForeground
               opacity: 0.45
               font.family: root.contentFontFamily
               font.pixelSize: Style.font.size(10)
+              width: parent.width
+              wrapMode: Text.WordWrap
             }
             Rectangle {
               width: parent.width
@@ -415,11 +427,13 @@ Panel {
             spacing: Style.space(4)
             visible: liveStore && liveStore.inputMode === "phone"
             Text {
-              text: "Phone number"
+              text: "Phone number (ZoomInfo-only — LeadMagic skips phone → contact)"
               color: root.contentForeground
               opacity: 0.45
               font.family: root.contentFontFamily
               font.pixelSize: Style.font.size(10)
+              width: parent.width
+              wrapMode: Text.WordWrap
             }
             Rectangle {
               width: parent.width
@@ -692,14 +706,30 @@ Panel {
           }
         }
 
-        Text {
+        // Honest capability + unofficial footer
+        Column {
           width: parent.width
-          text: "Unofficial · LeadMagic / ZoomInfo / GTM.AI · individual follow-up only"
-          color: root.contentForeground
-          opacity: 0.28
-          font.family: root.contentFontFamily
-          font.pixelSize: Style.font.size(10)
-          wrapMode: Text.WordWrap
+          spacing: Style.space(4)
+
+          Text {
+            width: parent.width
+            text: "Phone → contact is ZoomInfo-only (LeadMagic skips) · X/Twitter profile URL is best-effort (LinkedIn hits more) · not for blast outbound"
+            color: root.contentForeground
+            opacity: 0.32
+            font.family: root.contentFontFamily
+            font.pixelSize: Style.font.size(10)
+            wrapMode: Text.WordWrap
+          }
+
+          Text {
+            width: parent.width
+            text: "Unofficial · not affiliated with LeadMagic, ZoomInfo, or GTM.AI · individual follow-up only"
+            color: root.contentForeground
+            opacity: 0.22
+            font.family: root.contentFontFamily
+            font.pixelSize: Style.font.size(10)
+            wrapMode: Text.WordWrap
+          }
         }
       }
     }

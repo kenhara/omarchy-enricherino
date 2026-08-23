@@ -2,20 +2,40 @@
   "schemaVersion": 1,
   "id": "harris.yellow-pixels",
   "name": "Yellow Pixels",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": "Harris Kenny",
   "license": "MIT",
   "description": "Yellow Pixels — individual contact lookup for Omarchy (LeadMagic + ZoomInfo / GTM.AI). Joke-friendly yellow-pages vibe. Not for blast outbound. Unofficial.",
-  "kinds": ["bar-widget"],
-  "entryPoints": { "barWidget": "BarWidget.qml" },
-  "keywords": ["yellow pixels", "yellow pages", "enrichment", "leadmagic", "zoominfo", "gtm.ai", "contact lookup", "people"],
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "keywords": [
+    "yellow pixels",
+    "yellow pages",
+    "enrichment",
+    "leadmagic",
+    "zoominfo",
+    "gtm.ai",
+    "contact lookup",
+    "people"
+  ],
   "barWidget": {
     "displayName": "Yellow Pixels",
     "description": "Individual contact lookup via LeadMagic and/or ZoomInfo GTM — email, profile URL, name+company, or phone. Not a sequencer.",
     "category": "Productivity",
     "allowMultiple": false,
     "defaultSection": "right",
-    "aliases": ["yellow pixels", "yellow pages", "yp", "leadmagic", "zoominfo", "enrich"],
+    "aliases": [
+      "yellow pixels",
+      "yellow pages",
+      "yp",
+      "leadmagic",
+      "zoominfo",
+      "enrich"
+    ],
     "defaults": {
       "leadmagicApiKey": "",
       "zoominfoBearerToken": "",
@@ -41,7 +61,11 @@
         "type": "enum",
         "label": "Provider mode",
         "description": "leadmagic | zoominfo | waterfall (LeadMagic first, then ZoomInfo for missing fields). Default waterfall.",
-        "options": ["leadmagic", "zoominfo", "waterfall"],
+        "options": [
+          "leadmagic",
+          "zoominfo",
+          "waterfall"
+        ],
         "defaultValue": "waterfall"
       }
     ]

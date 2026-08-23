@@ -30,3 +30,10 @@ docs/preview/.cache/
 docs/preview/node_modules/
 docs/preview/.parcel-cache/
 docs/preview/dist/
+
+# Secrets / local keys — never commit
+.env
+.env.*
+*.pem
+*credentials*
+*secret*

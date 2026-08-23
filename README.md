@@ -7,7 +7,14 @@ LeadMagic and/or ZoomInfo (GTM.AI) enrich. Built as a native Quattro `bar-widget
 **ID:** `harris.yellow-pixels`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.1.0
+**Version:** 0.1.1
+
+### 0.1.1
+- Playbook refresh (Security Theater ops exemplar): `preview.png`, Remove /
+  Security baseline / Controls, middle-click clears last result, cache last
+  successful lookup to `~/.cache/yellow-pixels/last.json` (never API keys),
+  honest capability copy (phone = ZoomInfo-only; X/Twitter best-effort),
+  clearer **Keys** empty state.
 
 ### 0.1.0
 - MVP — bar `● YP`, panel lookup, LeadMagic + ZoomInfo + waterfall, schema keys.
@@ -48,6 +55,8 @@ omarchy-shell shell rescanPlugins
 omarchy bar move harris.yellow-pixels --section right
 ```
 
+Hot reload applies on save under `~/.config/omarchy/plugins/`.
+
 ### Symlink (dev)
 
 ```sh
@@ -66,7 +75,9 @@ Open **widget settings** for Yellow Pixels (Omarchy bar / plugin settings):
 | `zoominfoBearerToken` | ZoomInfo / GTM.AI bearer token | `ZOOMINFO_BEARER_TOKEN` → `Authorization: Bearer …` |
 | `providerMode` | `leadmagic` | `zoominfo` | `waterfall` (default) | CLI `--provider` |
 
-**Do not commit real keys.** Defaults are empty strings.
+**Do not commit real keys.** Defaults are empty strings. Keys are injected into
+the lookup process env for that one call only — they are **never** written to
+`~/.cache/yellow-pixels/`.
 
 CLI smoke (optional):
 
@@ -77,17 +88,40 @@ python3 scripts/lookup.py --provider waterfall --mode email --json '{"email":"a@
 ```
 
 Without keys, the script returns structured error JSON asking you to add keys
-in widget settings.
+in widget settings. The panel shows a **Keys** empty state until at least one
+required key is present for the selected provider mode.
 
 ## Usage
 
 - **Left-click** bar `● YP` to open/close the panel.
-- **Middle-click** opens the panel (does not auto-fire paid APIs).
+- **Middle-click** clears the last result (and cache) with toast **Cleared** —
+  does **not** auto-fire paid APIs.
 - Pick provider chip: **LeadMagic** / **ZoomInfo** / **Waterfall**.
 - Pick input tab: **Email** | **Profile URL** | **Name + company** | **Phone**.
 - Hit **Lookup**. Result card shows name, title, company, email, phone,
   LinkedIn / X, profile URL, and **which provider filled each field**.
 - **Copy** per field or **Copy all**.
+- Pointer cursor only on actionable controls.
+
+### Controls
+
+| Input | Action |
+|-------|--------|
+| Left-click bar | Toggle panel |
+| Middle-click bar | Clear last result (+ cache); toast "Cleared" |
+| Provider chips | Switch LeadMagic / ZoomInfo / Waterfall |
+| Input tabs | Email · Profile URL · Name + company · Phone |
+| Lookup | Run `scripts/lookup.py` (paid API call) |
+| Copy / Copy all | Clipboard field or full card |
+| Keys empty state | Shown when required key(s) missing — open widget settings |
+
+### Honest capability notes
+
+- **Phone → contact** is **ZoomInfo-only** in MVP (LeadMagic skips; waterfall
+  still works when a ZoomInfo token is present).
+- **X/Twitter profile URL** is **best-effort**; LinkedIn profile URLs hit more
+  reliably on both providers.
+- **Not for blast outbound** — one person at a time, lawful individual follow-up.
 
 ## Controls / flows that work
 
@@ -101,6 +135,18 @@ in widget settings.
 Waterfall = LeadMagic first, then ZoomInfo only for still-missing fields
 (email, phone, linkedin/profile, name, title, company).
 
+## Remove
+
+```sh
+omarchy plugin remove harris.yellow-pixels
+```
+
+Optional cache cleanup:
+
+```sh
+rm -rf ~/.cache/yellow-pixels
+```
+
 ## Network
 
 - LeadMagic: `https://api.leadmagic.io` (paths under `/v1/people/…`, with
@@ -109,7 +155,9 @@ Waterfall = LeadMagic first, then ZoomInfo only for still-missing fields
   with `Accept` / `Content-Type`: `application/vnd.api+json`.
 
 Outbound HTTPS only when you click Lookup. Keys stay in widget settings /
-process env for that one call — never written into the repo.
+process env for that one call — never written into the repo or the result cache.
+
+Cache (last **successful** lookup only): `~/.cache/yellow-pixels/last.json`.
 
 ## Scripts
 
@@ -124,18 +172,37 @@ python3 scripts/lookup.py --provider leadmagic|zoominfo|waterfall \
 ## Layout
 
 ```
-manifest.json          # harris.yellow-pixels @ 0.1.0
-BarWidget.qml          # bar entry + Loader → Panel
-Panel.qml              # nested panel UI
-YellowStore.qml        # Process → lookup.py; result model
+manifest.json          # harris.yellow-pixels @ 0.1.1
+BarWidget.qml          # bar entry + Loader → Panel; middle-click clear
+Panel.qml              # nested panel UI (Keys empty state + honest footer)
+YellowStore.qml        # Process → lookup.py; result model + disk cache
 qmldir
 scripts/lookup.py
 docs/preview/index.html
 preview.svg
+preview.png
 DESIGN.md
+REPO.md
 LICENSE                # MIT
+README.md
 ```
+
+## Security baseline
+
+- Keys live in widget settings only; injected as process env for a single
+  `lookup.py` run. **Never** persisted to `~/.cache/yellow-pixels/` or the repo.
+- Cache stores the last successful result card (and optional input snapshot) —
+  no API keys / bearer tokens.
+- Outbound HTTPS only on explicit Lookup. No auto-fire on panel open or
+  middle-click.
+- MIT at repo root. Unofficial — not affiliated with LeadMagic, ZoomInfo, or
+  GTM.AI.
 
 ## Preview
 
 Open `docs/preview/index.html` in a browser for a static mock of the panel.
+Marketplace card: `preview.png` (generated from `preview.svg`).
+
+## License
+
+MIT — see [LICENSE](LICENSE).
