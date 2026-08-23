@@ -35,7 +35,7 @@ def read_manifest_version() -> str:
             return ver
     except Exception:
         pass
-    return "0.2.2"
+    return "0.2.3"
 
 
 VERSION = read_manifest_version()

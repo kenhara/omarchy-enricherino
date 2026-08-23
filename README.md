@@ -10,7 +10,10 @@ Delight in ≤10 seconds. Waterfall under the hood. Unofficial.
 **ID:** `harris.yellow-pixels`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.2.2
+**Version:** 0.2.3
+
+### 0.2.3
+- Discoverability: expanded `keywords` + `barWidget.aliases` (LeadMagic/ZoomInfo/Apollo/etc.); honest search note.
 
 ### 0.2.2
 - Pre-ship checklist: drop dead `handleSummonPayload`, LICENSE second `Software`
@@ -58,6 +61,16 @@ Local folder: **`omarchy-yellow-pixels`**.
 sponsored by LeadMagic, ZoomInfo, GTM.AI, or any related entity. It is a thin
 personal client that calls public/documented HTTP APIs with **your** keys.
 Use only for lawful individual follow-up. **Not a sequencer.**
+
+## Discoverability
+
+Marketplace filing: **Productivity** · tags `bar, quickshell` (suggest missing
+tag: `crm` or `enrichment`).
+
+Top-level `keywords` in `manifest.json` may help marketplace/search (LeadMagic,
+ZoomInfo, GTM.AI, LinkedIn, Apollo, Clearbit, Hunter, etc.).
+`barWidget.aliases` are for discovery docs and human search — the bar loader
+may not index them. Display name stays **Yellow Pixels** (brand-free).
 
 ## Install
 
@@ -238,8 +251,8 @@ README.md
 ## Preview
 
 Open `docs/preview/index.html` in a browser for an **interactive** HTML mock
-(v0.2.2): paste field + FIND toggles to the Alex-style contact card. No provider
-chips. Banner **v0.2.2 HTML mock**. Marketplace card: `preview.png` (from
+(v0.2.3): paste field + FIND toggles to the Alex-style contact card. No provider
+chips. Banner **v0.2.3 HTML mock**. Marketplace card: `preview.png` (from
 `preview.svg`).
 
 ## License

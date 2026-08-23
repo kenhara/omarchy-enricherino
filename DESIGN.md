@@ -1,6 +1,6 @@
 # Yellow Pixels — design notes
 
-**Status:** 0.2.2 (pre-ship harden)  
+**Status:** 0.2.3 (discoverability)  
 **Id:** `harris.yellow-pixels`  
 **Peers:** Security Theater, Space Jockey, Fair Witness, Daily Bread
 

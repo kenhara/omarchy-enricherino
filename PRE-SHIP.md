@@ -1,4 +1,9 @@
-# Yellow Pixels — pre-ship checklist (0.2.2)
+# Yellow Pixels — pre-ship checklist (0.2.3)
+
+## PRE-SHIP note — discoverability (0.2.3)
+
+Patch bump for marketplace discoverability before UTM smoke: expanded `keywords` + `barWidget.aliases` (LeadMagic/ZoomInfo/Apollo/Clearbit/Hunter…); README Discoverability; suggest missing tag `crm` or `enrichment`. Category stays **Productivity**. No QML/lookup change.
+
 
 Omarchy Quattro playbook greps + marketplace polish applied on top of **0.2.1**
 audit fixes. YP-specific keep: **phone honesty** (LeadMagic never echoes typed
@@ -21,7 +26,7 @@ phone as enrich / `ok`) and waterfall **`entered`** labels for typed-only phone.
 | 11 | Honest copy toasts | OK + exit-127 toast |
 | 12 | `Text.PlainText` | **N/A** — no remote HTML; contact fields are JSON strings |
 | 13 | Hover on actionable; Flickable | Fixed hover on FIND / Copy / Copy card; Flickable already |
-| 14 | Version sync manifest / README / DESIGN / preview / UA | **0.2.2**; UA from `manifest.json` |
+| 14 | Version sync manifest / README / DESIGN / preview / UA | **0.2.3**; UA from `manifest.json` |
 | 15 | Integer schema `min`/`max`/`step` | **N/A** — string + enum only |
 | 16 | No invented `handleSummonPayload` | Fixed — removed; middle-click → `clearLastResult` |
 | 17 | Controls L/R/M; witty pitch ≤15 words; no curl\|sh | Fixed Controls + pitch; baseline clean |
