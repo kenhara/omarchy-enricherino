@@ -17,7 +17,7 @@ BarWidget {
     : false
 
   readonly property color foreground: root.bar ? root.bar.foreground : Color.foreground
-  readonly property string fontFamily: root.bar ? root.bar.fontFamily : Style.font.family
+  readonly property string fontFamily: root.bar ? root.bar.fontFamily : "monospace"
 
   // Warm yellow accent for the joke yellow-pages vibe (falls back if theme lacks it)
   readonly property color ypAccent: Qt.rgba(1.0, 0.86, 0.28, 1.0)
@@ -57,13 +57,7 @@ BarWidget {
   implicitWidth: button.implicitWidth
   implicitHeight: button.implicitHeight
 
-  function handleSummonPayload(obj) {
-    return yellowStore.handleSummonPayload(obj)
-  }
-
-  function open(payloadJson) {
-    if (payloadJson !== undefined && payloadJson !== null && String(payloadJson).length)
-      root.handleSummonPayload(payloadJson)
+  function open() {
     if (panelLoader.item) panelLoader.item.open()
   }
 
@@ -79,8 +73,8 @@ BarWidget {
     if (panelLoader.item) panelLoader.item.closeForPopoutSwitch()
   }
 
-  function onBarMiddleClick() {
-    // Useful middle-click: clear last result (+ cache) with toast — do not auto-fire paid APIs.
+  // Local name — middle-click clears last result (+ cache); do not auto-fire paid APIs.
+  function clearLastResult() {
     yellowStore.clearResult()
   }
 
@@ -151,7 +145,7 @@ BarWidget {
     }
     onPressed: function(buttonCode) {
       if (buttonCode === Qt.LeftButton) root.toggle()
-      else if (buttonCode === Qt.MiddleButton) root.onBarMiddleClick()
+      else if (buttonCode === Qt.MiddleButton) root.clearLastResult()
     }
   }
 }

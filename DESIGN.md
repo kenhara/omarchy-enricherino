@@ -1,8 +1,8 @@
 # Yellow Pixels — design notes
 
-**Status:** 0.2.1 (hard redesign — one paste, FIND, contact card)  
+**Status:** 0.2.2 (pre-ship harden)  
 **Id:** `harris.yellow-pixels`  
-**Paths:** `/workspace/omarchy-yellow-pixels/` · playbook peers: Security Theater, Space Jockey
+**Peers:** Security Theater, Space Jockey, Fair Witness, Daily Bread
 
 ## Why
 
@@ -28,8 +28,9 @@ follow-up contact via LeadMagic and/or ZoomInfo GTM under the hood.
 
 `● YP` — left click toggles panel. Tooltip: *Yellow Pixels — look somebody up ·
 middle: clear*. Middle click clears last result / cache (does **not** auto-lookup).
+Right-click unused.
 
-## Panel (0.2.0)
+## Panel (0.2.0+)
 
 1. Big **YELLOW PIXELS** (letter-spacing) + *look somebody up*
 2. One multiline/paste field

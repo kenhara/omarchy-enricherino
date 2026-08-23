@@ -491,57 +491,6 @@ QtObject {
       store.loadDiskText(text)
   }
 
-  function handleSummonPayload(obj) {
-    if (obj === undefined || obj === null || obj === "")
-      return false
-    if (typeof obj === "string") {
-      var raw = String(obj).trim()
-      if (!raw.length) return false
-      try { obj = JSON.parse(raw) } catch (e) { return false }
-    }
-    if (typeof obj !== "object") return false
-    var acted = false
-    if (obj.provider) {
-      store.setProviderMode(obj.provider)
-      acted = true
-    }
-    if (obj.mode) {
-      store.setInputMode(obj.mode)
-      acted = true
-    }
-    if (obj.paste || obj.pasteInput) {
-      store.pasteInput = String(obj.paste || obj.pasteInput)
-      acted = true
-      if (obj.find === true || obj.find === "true" || obj.lookup === true || obj.lookup === "true" || obj.lookup === 1) {
-        Qt.callLater(function() { store.findFromPaste() })
-        return true
-      }
-    }
-    if (obj.email) { store.emailInput = String(obj.email); store.inputMode = "email"; acted = true }
-    if (obj.profile_url || obj.url) {
-      store.profileUrlInput = String(obj.profile_url || obj.url)
-      store.inputMode = "profile"
-      acted = true
-    }
-    if (obj.full_name || obj.name) {
-      store.fullNameInput = String(obj.full_name || obj.name)
-      store.inputMode = "name_company"
-      acted = true
-    }
-    if (obj.domain) { store.domainInput = String(obj.domain); acted = true }
-    if (obj.company) { store.companyInput = String(obj.company); acted = true }
-    if (obj.phone) { store.phoneInput = String(obj.phone); store.inputMode = "phone"; acted = true }
-    if (obj.clear === true || obj.clear === "true" || obj.clear === 1) {
-      store.clearResult()
-      acted = true
-    }
-    if (obj.lookup === true || obj.lookup === "true" || obj.lookup === 1) {
-      Qt.callLater(function() { store.lookup() })
-      acted = true
-    }
-    return acted
-  }
-
   Component.onCompleted: {
     store.bootstrap()
   }
@@ -568,6 +517,8 @@ QtObject {
     onExited: function(exitCode, exitStatus) {
       if (exitCode === 0)
         store.showToast("Copied")
+      else if (exitCode === 127)
+        store.showToast("No clipboard tool")
       else
         store.showToast("Copy failed")
     }

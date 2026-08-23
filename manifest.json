@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "harris.yellow-pixels",
   "name": "Yellow Pixels",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "author": "Harris Kenny",
   "license": "MIT",
-  "description": "Yellow Pixels — look somebody up. One paste, FIND, contact card. LeadMagic + ZoomInfo waterfall under the hood. Yellow-pages joke, not a sequencer. Unofficial.",
+  "description": "Paste one thing. Hit FIND. Get a contact card.",
   "kinds": [
     "bar-widget"
   ],
@@ -24,7 +24,7 @@
   ],
   "barWidget": {
     "displayName": "Yellow Pixels",
-    "description": "Paste email / LinkedIn / X / phone / Name at company — FIND — contact card. Waterfall under the hood. Not a sequencer.",
+    "description": "Paste email / LinkedIn / X / phone / Name at company \u2014 FIND \u2014 contact card. Waterfall under the hood. Not a sequencer.",
     "category": "Productivity",
     "allowMultiple": false,
     "defaultSection": "right",

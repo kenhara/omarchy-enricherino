@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Yellow Pixels — individual contact lookup (LeadMagic + ZoomInfo GTM).
 
-CLI for Omarchy Quattro bar-widget. Reads keys from env:
+CLI for Omarchy bar-widget. Reads keys from env:
   LEADMAGIC_API_KEY
   ZOOMINFO_BEARER_TOKEN
 
+User-Agent version is read from manifest.json.
 Not for blast outbound. Unofficial client.
 """
 from __future__ import annotations
@@ -16,11 +17,29 @@ import re
 import sys
 import urllib.error
 import urllib.request
+from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
 LEADMAGIC_BASE = "https://api.leadmagic.io"
 ZOOMINFO_ENRICH = "https://api.zoominfo.com/gtm/data/v1/contacts/enrich"
+PLUGIN_ID = "harris.yellow-pixels"
+
+
+def read_manifest_version() -> str:
+    try:
+        manifest = Path(__file__).resolve().parent.parent / "manifest.json"
+        data = json.loads(manifest.read_text(encoding="utf-8"))
+        ver = str(data.get("version") or "").strip()
+        if ver:
+            return ver
+    except Exception:
+        pass
+    return "0.2.2"
+
+
+VERSION = read_manifest_version()
+USER_AGENT = f"YellowPixels/{VERSION} (Omarchy unofficial; {PLUGIN_ID})"
 
 # Prefer /v1/people/…; fall back to root paths on 404 (legacy OpenAPI).
 LM_PATHS = {
@@ -122,6 +141,7 @@ def http_json(
 ) -> tuple[int, Any, str]:
     data = None
     hdrs = dict(headers)
+    hdrs.setdefault("User-Agent", USER_AGENT)
     if body is not None:
         data = json.dumps(body).encode("utf-8")
         hdrs.setdefault("Content-Type", "application/json")

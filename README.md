@@ -1,12 +1,23 @@
 # Yellow Pixels
 
+![Yellow Pixels](preview.png)
+
+Paste one thing. Hit FIND. Get a contact card.
+
 Individual contact lookup for Omarchy — **yellow-pages / pixel desk joke, not a sequencer.**
-Paste one thing. Hit **FIND**. Get a contact card. Delight in ≤10 seconds.
+Delight in ≤10 seconds. Waterfall under the hood. Unofficial.
 
 **ID:** `harris.yellow-pixels`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.2.1
+**Version:** 0.2.2
+
+### 0.2.2
+- Pre-ship checklist: drop dead `handleSummonPayload`, LICENSE second `Software`
+  unquoted, scrub `/workspace` from DESIGN, README hero `preview.png`, witty
+  pitch ≤15 words, Controls L/R/M, monospace font fallback, hover on FIND/Copy,
+  focus paste on open, honest “No clipboard tool” toast, UA from `manifest.json`.
+  Kept phone honesty (no LeadMagic echo-ok) + waterfall `entered` labels.
 
 ### 0.2.1
 - Audit fixes: named `Style.font.*` tokens (no fake `size(N)`), API keys via
@@ -125,9 +136,10 @@ python3 scripts/lookup.py --provider waterfall --mode email --json '{"email":"a@
 |-------|--------|
 | Left-click bar | Toggle panel |
 | Middle-click bar | Clear last result (+ cache); toast "Cleared" |
+| Right-click bar | (none) |
 | Paste field | One multiline/paste; Enter triggers FIND |
 | FIND | Detect mode → fill inputs → `lookup()` |
-| Copy / Copy card | Clipboard field or full card |
+| Copy / Copy card | Clipboard field or full card (toast only on success) |
 | Keys one-liner | Shown when required key(s) missing |
 
 ### Detect modes
@@ -181,6 +193,7 @@ rm -rf ~/.cache/yellow-pixels
 
 Outbound HTTPS only when you click FIND. Keys stay in widget settings /
 process env for that one call — never written into the repo or the result cache.
+User-Agent: `YellowPixels/<manifest version> (Omarchy unofficial; harris.yellow-pixels)`.
 
 Cache (last **successful** lookup only): `~/.cache/yellow-pixels/last.json`.
 
@@ -197,7 +210,7 @@ python3 scripts/lookup.py --provider leadmagic|zoominfo|waterfall \
 ## Layout
 
 ```
-manifest.json          # harris.yellow-pixels @ 0.2.1
+manifest.json          # harris.yellow-pixels @ 0.2.2
 BarWidget.qml          # bar entry + Loader → Panel; middle-click clear
 Panel.qml              # paste + FIND + contact card
 YellowStore.qml        # pasteInput, detectMode, findFromPaste, cache, lookup
@@ -207,6 +220,7 @@ docs/preview/index.html
 preview.svg
 preview.png
 DESIGN.md
+PRE-SHIP.md
 REPO.md
 LICENSE                # MIT
 README.md
@@ -224,8 +238,8 @@ README.md
 ## Preview
 
 Open `docs/preview/index.html` in a browser for an **interactive** HTML mock
-(v0.2.1): paste field + FIND toggles to the Alex-style contact card. No provider
-chips. Banner **v0.2.1 HTML mock**. Marketplace card: `preview.png` (from
+(v0.2.2): paste field + FIND toggles to the Alex-style contact card. No provider
+chips. Banner **v0.2.2 HTML mock**. Marketplace card: `preview.png` (from
 `preview.svg`).
 
 ## License

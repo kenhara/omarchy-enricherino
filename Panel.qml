@@ -16,7 +16,7 @@ Panel {
 
   readonly property var barIdentity: hostWidget || root
   readonly property color contentForeground: bar ? bar.foreground : Color.foreground
-  readonly property string contentFontFamily: bar ? bar.fontFamily : Style.font.family
+  readonly property string contentFontFamily: bar ? bar.fontFamily : "monospace"
   readonly property color themeBackground: {
     try {
       if (typeof Color !== "undefined" && Color.popups && Color.popups.background)
@@ -51,12 +51,9 @@ Panel {
     }
   }
 
-  function handleSummonPayload(obj) {
-    if (!liveStore) return false
-    var acted = liveStore.handleSummonPayload(obj)
-    if (acted && !root.opened)
-      root.open()
-    return acted
+  onOpenedChanged: {
+    if (root.opened)
+      Qt.callLater(function () { if (pasteEdit) pasteEdit.forceActiveFocus() })
   }
 
   function contactRows() {
@@ -212,7 +209,9 @@ Panel {
           width: parent.width
           height: Style.space(48)
           radius: 10
-          color: root.ypYellow
+          color: findMa.containsMouse
+            ? Qt.lighter(root.ypYellow, 1.08)
+            : root.ypYellow
           opacity: liveStore && liveStore.loading ? 0.7 : 1.0
 
           Text {
@@ -226,7 +225,9 @@ Panel {
           }
 
           MouseArea {
+            id: findMa
             anchors.fill: parent
+            hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             enabled: !(liveStore && liveStore.loading)
             onClicked: if (liveStore) liveStore.findFromPaste()
@@ -336,7 +337,9 @@ Panel {
                   height: Style.space(26)
                   radius: 6
                   anchors.verticalCenter: parent.verticalCenter
-                  color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.08)
+                  color: copyRowMa.containsMouse
+                    ? Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.14)
+                    : Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.08)
                   border.width: 1
                   border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
                   Text {
@@ -347,7 +350,9 @@ Panel {
                     font.pixelSize: Style.font.caption
                   }
                   MouseArea {
+                    id: copyRowMa
                     anchors.fill: parent
+                    hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: if (liveStore) liveStore.copyField(modelData.key)
                   }
@@ -373,7 +378,9 @@ Panel {
               height: Style.space(34)
               radius: 8
               visible: root.hasAnyContactField()
-              color: Qt.rgba(root.ypYellow.r, root.ypYellow.g, root.ypYellow.b, 0.16)
+              color: copyCardMa.containsMouse
+                ? Qt.rgba(root.ypYellow.r, root.ypYellow.g, root.ypYellow.b, 0.28)
+                : Qt.rgba(root.ypYellow.r, root.ypYellow.g, root.ypYellow.b, 0.16)
               border.width: 1
               border.color: Qt.rgba(root.ypYellow.r, root.ypYellow.g, root.ypYellow.b, 0.4)
 
@@ -387,7 +394,9 @@ Panel {
               }
 
               MouseArea {
+                id: copyCardMa
                 anchors.fill: parent
+                hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
                 onClicked: if (liveStore) liveStore.copyAll()
               }
