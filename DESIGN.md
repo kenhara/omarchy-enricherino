@@ -1,6 +1,6 @@
 # Yellow Pixels — design notes
 
-**Status:** 0.1.1 (playbook refresh)  
+**Status:** 0.1.2 (UI polish / richer preview)  
 **Id:** `harris.yellow-pixels`  
 **Paths:** `/workspace/omarchy-yellow-pixels/` · playbook peers: Security Theater, Space Jockey
 

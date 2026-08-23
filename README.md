@@ -7,7 +7,14 @@ LeadMagic and/or ZoomInfo (GTM.AI) enrich. Built as a native Quattro `bar-widget
 **ID:** `harris.yellow-pixels`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.1.1
+**Version:** 0.1.2
+
+### 0.1.2
+- UI polish + richer HTML preview: interactive mock with filled sample result
+  card (Name/Title/Company/Email/Phone/LinkedIn/X + source tags), clickable
+  provider chips & input tabs, demo toggle (result vs keys-missing), honest
+  footer aligned with panel (phone = ZoomInfo-only · X best-effort · not for
+  blast outbound · unofficial).
 
 ### 0.1.1
 - Playbook refresh (Security Theater ops exemplar): `preview.png`, Remove /
@@ -172,7 +179,7 @@ python3 scripts/lookup.py --provider leadmagic|zoominfo|waterfall \
 ## Layout
 
 ```
-manifest.json          # harris.yellow-pixels @ 0.1.1
+manifest.json          # harris.yellow-pixels @ 0.1.2
 BarWidget.qml          # bar entry + Loader → Panel; middle-click clear
 Panel.qml              # nested panel UI (Keys empty state + honest footer)
 YellowStore.qml        # Process → lookup.py; result model + disk cache
@@ -200,8 +207,10 @@ README.md
 
 ## Preview
 
-Open `docs/preview/index.html` in a browser for a static mock of the panel.
-Marketplace card: `preview.png` (generated from `preview.svg`).
+Open `docs/preview/index.html` in a browser for an **interactive** HTML mock
+(v0.1.2): clickable provider chips & input tabs, filled sample result card with
+source tags, Copy buttons, and a demo toggle (result vs keys-missing). Not live
+APIs. Marketplace card: `preview.png` (from `preview.svg`).
 
 ## License
 

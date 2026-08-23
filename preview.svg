@@ -18,38 +18,46 @@
   <text x="1056" y="27" fill="#ffdb47" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">●</text>
   <text x="1074" y="27" fill="#f0f0fa" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">YP</text>
   <!-- panel -->
-  <rect x="720" y="72" width="440" height="620" rx="16" fill="#121216" stroke="rgba(240,240,250,0.12)"/>
-  <text x="748" y="112" fill="#ffdb47" font-family="ui-sans-serif, system-ui, sans-serif" font-size="16">●</text>
-  <text x="768" y="112" fill="#f0f0fa" font-family="ui-sans-serif, system-ui, sans-serif" font-size="15" font-weight="700" letter-spacing="3">YELLOW PIXELS</text>
-  <text x="748" y="136" fill="#f0f0fa" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12" opacity="0.45">individual lookup · not for blast outbound</text>
+  <rect x="720" y="56" width="440" height="660" rx="16" fill="#121216" stroke="rgba(240,240,250,0.12)"/>
+  <text x="748" y="96" fill="#ffdb47" font-family="ui-sans-serif, system-ui, sans-serif" font-size="16">●</text>
+  <text x="768" y="96" fill="#f0f0fa" font-family="ui-sans-serif, system-ui, sans-serif" font-size="15" font-weight="700" letter-spacing="3">YELLOW PIXELS</text>
+  <text x="748" y="120" fill="#f0f0fa" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12" opacity="0.45">individual lookup · not for blast outbound</text>
   <!-- chips -->
-  <rect x="748" y="156" width="88" height="26" rx="6" fill="rgba(240,240,250,0.06)" stroke="rgba(240,240,250,0.12)"/>
-  <text x="762" y="174" fill="#f0f0fa" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">LeadMagic</text>
-  <rect x="844" y="156" width="80" height="26" rx="6" fill="rgba(240,240,250,0.06)" stroke="rgba(240,240,250,0.12)"/>
-  <text x="858" y="174" fill="#f0f0fa" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">ZoomInfo</text>
-  <rect x="932" y="156" width="86" height="26" rx="6" fill="rgba(255,219,71,0.22)" stroke="rgba(255,219,71,0.55)"/>
-  <text x="946" y="174" fill="#f0f0fa" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700">Waterfall</text>
+  <rect x="748" y="140" width="88" height="26" rx="6" fill="rgba(240,240,250,0.06)" stroke="rgba(240,240,250,0.12)"/>
+  <text x="762" y="158" fill="#f0f0fa" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">LeadMagic</text>
+  <rect x="844" y="140" width="80" height="26" rx="6" fill="rgba(240,240,250,0.06)" stroke="rgba(240,240,250,0.12)"/>
+  <text x="858" y="158" fill="#f0f0fa" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">ZoomInfo</text>
+  <rect x="932" y="140" width="86" height="26" rx="6" fill="rgba(255,219,71,0.22)" stroke="rgba(255,219,71,0.55)"/>
+  <text x="946" y="158" fill="#f0f0fa" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700">Waterfall</text>
   <!-- tabs -->
-  <text x="748" y="214" fill="#f0f0fa" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700">Email</text>
-  <text x="808" y="214" fill="#f0f0fa" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.45">Profile URL</text>
-  <text x="908" y="214" fill="#f0f0fa" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.45">Name + company</text>
-  <rect x="748" y="228" width="384" height="36" rx="8" fill="rgba(240,240,250,0.06)" stroke="rgba(240,240,250,0.12)"/>
-  <text x="764" y="251" fill="#f0f0fa" font-size="13" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.55">alex@example.com</text>
-  <rect x="748" y="280" width="384" height="36" rx="8" fill="rgba(255,219,71,0.28)" stroke="rgba(255,219,71,0.55)"/>
-  <text x="914" y="303" fill="#f0f0fa" font-size="13" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700">Lookup</text>
+  <text x="748" y="198" fill="#f0f0fa" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700">Email</text>
+  <text x="808" y="198" fill="#f0f0fa" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.45">Profile</text>
+  <text x="872" y="198" fill="#f0f0fa" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.45">Name+co</text>
+  <text x="958" y="198" fill="#f0f0fa" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.45">Phone</text>
+  <rect x="748" y="212" width="384" height="36" rx="8" fill="rgba(240,240,250,0.06)" stroke="rgba(240,240,250,0.12)"/>
+  <text x="764" y="235" fill="#f0f0fa" font-size="13" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.55">alex@example.com</text>
+  <rect x="748" y="260" width="384" height="36" rx="8" fill="rgba(255,219,71,0.28)" stroke="rgba(255,219,71,0.55)"/>
+  <text x="914" y="283" fill="#f0f0fa" font-size="13" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700">Lookup</text>
   <!-- result -->
-  <rect x="748" y="336" width="384" height="300" rx="12" fill="rgba(240,240,250,0.05)" stroke="rgba(240,240,250,0.1)"/>
-  <text x="768" y="368" fill="#f0f0fa" font-size="13" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700">Result</text>
-  <text x="824" y="368" fill="#f0f0fa" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.45">waterfall · ok</text>
-  <text x="768" y="404" fill="#f0f0fa" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.4">Name · leadmagic</text>
-  <text x="768" y="424" fill="#f0f0fa" font-size="14" font-family="ui-sans-serif, system-ui, sans-serif">Alex Example</text>
-  <text x="768" y="460" fill="#f0f0fa" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.4">Email · zoominfo</text>
-  <text x="768" y="480" fill="#f0f0fa" font-size="14" font-family="ui-sans-serif, system-ui, sans-serif">alex@example.com</text>
-  <text x="768" y="516" fill="#f0f0fa" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.4">LinkedIn · leadmagic</text>
-  <text x="768" y="536" fill="#f0f0fa" font-size="13" font-family="ui-sans-serif, system-ui, sans-serif">linkedin.com/in/alex</text>
-  <text x="768" y="580" fill="#f0f0fa" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.35">Unofficial · individual follow-up only</text>
+  <rect x="748" y="312" width="384" height="348" rx="12" fill="rgba(240,240,250,0.05)" stroke="rgba(240,240,250,0.1)"/>
+  <text x="768" y="340" fill="#f0f0fa" font-size="13" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700">Result</text>
+  <text x="824" y="340" fill="#f0f0fa" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.45">waterfall · ok</text>
+  <text x="768" y="370" fill="#f0f0fa" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.4">Name · LeadMagic</text>
+  <text x="768" y="388" fill="#f0f0fa" font-size="13" font-family="ui-sans-serif, system-ui, sans-serif">Alex Example</text>
+  <text x="768" y="414" fill="#f0f0fa" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.4">Title · LeadMagic</text>
+  <text x="768" y="432" fill="#f0f0fa" font-size="13" font-family="ui-sans-serif, system-ui, sans-serif">Product Manager</text>
+  <text x="768" y="458" fill="#f0f0fa" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.4">Company · LeadMagic</text>
+  <text x="768" y="476" fill="#f0f0fa" font-size="13" font-family="ui-sans-serif, system-ui, sans-serif">Example Corp</text>
+  <text x="768" y="502" fill="#f0f0fa" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.4">Email · ZoomInfo</text>
+  <text x="768" y="520" fill="#f0f0fa" font-size="13" font-family="ui-sans-serif, system-ui, sans-serif">alex@example.com</text>
+  <text x="768" y="546" fill="#f0f0fa" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.4">Phone · ZoomInfo</text>
+  <text x="768" y="564" fill="#f0f0fa" font-size="13" font-family="ui-sans-serif, system-ui, sans-serif">+1 415 555 0199</text>
+  <text x="768" y="590" fill="#f0f0fa" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.4">LinkedIn · LeadMagic · X · ZoomInfo</text>
+  <text x="768" y="608" fill="#f0f0fa" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">linkedin.com/in/alex · x.com/alex</text>
+  <text x="768" y="640" fill="#f0f0fa" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.35">phone = ZoomInfo-only · X best-effort · not for blast · unofficial</text>
   <!-- left caption -->
   <text x="64" y="360" fill="#f0f0fa" font-size="42" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700" opacity="0.9">Yellow</text>
   <text x="64" y="412" fill="#ffdb47" font-size="42" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700">Pixels</text>
   <text x="64" y="456" fill="#f0f0fa" font-size="16" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.5">one person · not a sequencer</text>
+  <text x="64" y="490" fill="#f0f0fa" font-size="13" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.35">v0.1.2 · richer preview</text>
 </svg>

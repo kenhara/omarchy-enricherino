@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "harris.yellow-pixels",
   "name": "Yellow Pixels",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": "Harris Kenny",
   "license": "MIT",
   "description": "Yellow Pixels — individual contact lookup for Omarchy (LeadMagic + ZoomInfo / GTM.AI). Joke-friendly yellow-pages vibe. Not for blast outbound. Unofficial.",
