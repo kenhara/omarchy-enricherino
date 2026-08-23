@@ -6,7 +6,15 @@ Paste one thing. Hit **FIND**. Get a contact card. Delight in ≤10 seconds.
 **ID:** `harris.yellow-pixels`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.2.0
+**Version:** 0.2.1
+
+### 0.2.1
+- Audit fixes: named `Style.font.*` tokens (no fake `size(N)`), API keys via
+  `Process.environment` (not argv), honest clipboard + toast, LeadMagic phone
+  no longer echoes input as enrich, waterfall labels typed phone as `entered`,
+  `ok` honors rejected guard, drop unused `dataChanged` / cache-dir Process /
+  dead store flags, popout-switch close on Panel. Schema enum kept; keys live in
+  shell settings plaintext — see AUDIT-NOTES.md.
 
 ### 0.2.0
 - **Hard redesign — one paste, FIND, contact card.** Rip the SaaS form:
@@ -83,10 +91,11 @@ Advanced / schema only — not in the primary panel UI:
 |------------|-------|----------------------|
 | `leadmagicApiKey` | LeadMagic API key | `LEADMAGIC_API_KEY` → header `X-API-Key` |
 | `zoominfoBearerToken` | ZoomInfo / GTM.AI bearer token | `ZOOMINFO_BEARER_TOKEN` → `Authorization: Bearer …` |
-| `providerMode` | `leadmagic` | `zoominfo` | `waterfall` (default) | CLI `--provider` |
+| `providerMode` | Provider mode: `leadmagic` \| `zoominfo` \| `waterfall` (default) | CLI `--provider` |
 
-**Do not commit real keys.** Defaults are empty strings. Keys are injected into
-the lookup process env for that one call only — they are **never** written to
+**Do not commit real keys.** Defaults are empty strings. Schema keys live in
+shell settings **plaintext**. At lookup time they are passed via
+`Process.environment` (not argv) for that one call only — **never** written to
 `~/.cache/yellow-pixels/`.
 
 Without keys, the panel shows a compact one-liner: **add keys in widget settings**.
@@ -131,6 +140,8 @@ python3 scripts/lookup.py --provider waterfall --mode email --json '{"email":"a@
 | looks like name + company | `Name at domain`, `Name @ Company`, `Name, domain.com` |
 
 Provider waterfall stays the default in schema — no chips in the primary UI.
+`providerMode` remains a schema **enum** (`leadmagic` | `zoominfo` | `waterfall`);
+change it in widget settings (chip-style picker if the shell renders enum options).
 
 ### Honest capability notes
 
@@ -186,7 +197,7 @@ python3 scripts/lookup.py --provider leadmagic|zoominfo|waterfall \
 ## Layout
 
 ```
-manifest.json          # harris.yellow-pixels @ 0.2.0
+manifest.json          # harris.yellow-pixels @ 0.2.1
 BarWidget.qml          # bar entry + Loader → Panel; middle-click clear
 Panel.qml              # paste + FIND + contact card
 YellowStore.qml        # pasteInput, detectMode, findFromPaste, cache, lookup
@@ -203,8 +214,9 @@ README.md
 
 ## Security baseline
 
-- Keys live in widget settings only; injected as process env for a single
-  `lookup.py` run. **Never** persisted to `~/.cache/yellow-pixels/` or the repo.
+- Keys live in **Omarchy shell / widget settings as plaintext** (schema strings).
+  Injected via `Process.environment` for a single `lookup.py` run — **not** in
+  argv. **Never** persisted to `~/.cache/yellow-pixels/` or the repo.
 - Cache stores the last successful result card — no API keys / bearer tokens.
 - Outbound HTTPS only on explicit FIND. No auto-fire on panel open or middle-click.
 - MIT at repo root. Unofficial — not affiliated with LeadMagic, ZoomInfo, or GTM.AI.
@@ -212,8 +224,8 @@ README.md
 ## Preview
 
 Open `docs/preview/index.html` in a browser for an **interactive** HTML mock
-(v0.2.0): paste field + FIND toggles to the Alex-style contact card. No provider
-chips. Banner **v0.2.0 HTML mock**. Marketplace card: `preview.png` (from
+(v0.2.1): paste field + FIND toggles to the Alex-style contact card. No provider
+chips. Banner **v0.2.1 HTML mock**. Marketplace card: `preview.png` (from
 `preview.svg`).
 
 ## License

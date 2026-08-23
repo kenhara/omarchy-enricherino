@@ -467,11 +467,13 @@ def leadmagic_lookup(mode: str, inputs: dict[str, Any], api_key: str, out: dict[
             out["errors"].append("phone required")
             return
         # LeadMagic has no clear phone→profile MVP endpoint; record attempt.
+        # Do NOT echo the typed phone into result — that is not enrichment
+        # (echoing would make ok:true and pin sources.phone so ZoomInfo cannot fill).
         out["warnings"].append(
             "LeadMagic has no dedicated phone→profile enrich in this MVP; "
             "try ZoomInfo or waterfall"
         )
-        merge_field(out, "phone", phone, "input")
+        out["raw_notes"].append("leadmagic:phone-mode skipped (no endpoint)")
     else:
         out["errors"].append(f"unknown mode: {mode}")
 
@@ -669,6 +671,20 @@ def missing_fields(out: dict[str, Any]) -> list[str]:
 def has_any_result(out: dict[str, Any]) -> bool:
     return any(not is_blank(out["result"].get(f)) for f in RESULT_FIELDS)
 
+def has_enriched_result(out: dict[str, Any]) -> bool:
+    """True when at least one field came from a real provider (not entered/input)."""
+    sources = out.get("sources") or {}
+    result = out.get("result") or {}
+    for f in RESULT_FIELDS:
+        if is_blank(result.get(f)):
+            continue
+        src = str(sources.get(f) or "")
+        if src and src not in ("entered", "input"):
+            return True
+    return False
+
+
+
 
 def run(provider: str, mode: str, inputs: dict[str, Any]) -> dict[str, Any]:
     out = empty_result()
@@ -736,15 +752,22 @@ def run(provider: str, mode: str, inputs: dict[str, Any]) -> dict[str, Any]:
     else:
         out["errors"].append(f"unknown provider: {provider}")
 
-    out["ok"] = has_any_result(out) and not any(
-        "rejected" in e.lower() for e in out["errors"]
-    )
-    # If we have results, ok even with soft warnings
-    if has_any_result(out):
-        out["ok"] = True
-    # Pure key-missing with no result
-    if not has_any_result(out) and out["errors"]:
-        out["ok"] = False
+    # Waterfall phone honesty: only after ZoomInfo ran, if still no provider phone,
+    # surface the typed number labeled "entered" (not "input") so it cannot pin/block
+    # a later ZI fill and is not claimed as enrichment.
+    if provider == "waterfall" and mode == "phone":
+        typed = pick(inputs.get("phone"), inputs.get("mobile"))
+        if typed and is_blank(out["result"].get("phone")):
+            out["result"]["phone"] = str(typed).strip()
+            out["sources"]["phone"] = "entered"
+            out["warnings"].append(
+                "phone shown is what you entered — not provider-enriched"
+            )
+
+    rejected = any("rejected" in e.lower() for e in out["errors"])
+    # Honor rejected guard; do not override with a blank "has results → ok" pass.
+    # "entered"/"input" fields alone do not count as successful enrich.
+    out["ok"] = has_enriched_result(out) and not rejected
     return out
 
 

@@ -39,6 +39,18 @@ Panel {
     return false
   }
 
+  // Popout-switch safety — bar may call this while switching panels.
+  property bool popoutSwitchClosing: false
+  function closeForPopoutSwitch() {
+    root.popoutSwitchClosing = true
+    try {
+      if (typeof root.close === "function")
+        root.close()
+    } finally {
+      Qt.callLater(function () { root.popoutSwitchClosing = false })
+    }
+  }
+
   function handleSummonPayload(obj) {
     if (!liveStore) return false
     var acted = liveStore.handleSummonPayload(obj)
@@ -109,7 +121,7 @@ Panel {
             text: "YELLOW PIXELS"
             color: root.ypYellow
             font.family: root.contentFontFamily
-            font.pixelSize: Style.font.size(18)
+            font.pixelSize: Style.font.title
             font.bold: true
             font.letterSpacing: 3.2
           }
@@ -119,7 +131,7 @@ Panel {
             color: root.contentForeground
             opacity: 0.5
             font.family: root.contentFontFamily
-            font.pixelSize: Style.font.size(12)
+            font.pixelSize: Style.font.body
             width: parent.width
           }
         }
@@ -145,7 +157,7 @@ Panel {
               anchors.margins: Style.space(10)
               color: root.contentForeground
               font.family: root.contentFontFamily
-              font.pixelSize: Style.font.size(13)
+              font.pixelSize: Style.font.subtitle
               wrapMode: TextEdit.Wrap
               selectByMouse: true
               text: liveStore ? liveStore.pasteInput : ""
@@ -166,7 +178,7 @@ Panel {
                 color: root.contentForeground
                 opacity: 0.32
                 font.family: root.contentFontFamily
-                font.pixelSize: Style.font.size(13)
+                font.pixelSize: Style.font.subtitle
                 wrapMode: Text.WordWrap
               }
             }
@@ -180,7 +192,7 @@ Panel {
             color: root.contentForeground
             opacity: 0.4
             font.family: root.contentFontFamily
-            font.pixelSize: Style.font.size(10)
+            font.pixelSize: Style.font.caption
           }
 
           // Compact keys one-liner (not a banner)
@@ -191,7 +203,7 @@ Panel {
             color: root.ypYellow
             opacity: 0.75
             font.family: root.contentFontFamily
-            font.pixelSize: Style.font.size(10)
+            font.pixelSize: Style.font.caption
           }
         }
 
@@ -208,7 +220,7 @@ Panel {
             text: liveStore && liveStore.loading ? "FINDING…" : "FIND"
             color: Qt.rgba(0.08, 0.07, 0.04, 1)
             font.family: root.contentFontFamily
-            font.pixelSize: Style.font.size(15)
+            font.pixelSize: Style.font.title
             font.bold: true
             font.letterSpacing: 2.4
           }
@@ -228,7 +240,7 @@ Panel {
           text: liveStore ? liveStore.lastError : ""
           color: Color.urgent
           font.family: root.contentFontFamily
-          font.pixelSize: Style.font.size(11)
+          font.pixelSize: Style.font.bodySmall
           wrapMode: Text.WordWrap
         }
 
@@ -238,7 +250,7 @@ Panel {
           text: liveStore ? liveStore.toastText : ""
           color: root.ypYellow
           font.family: root.contentFontFamily
-          font.pixelSize: Style.font.size(11)
+          font.pixelSize: Style.font.bodySmall
         }
 
         // Contact card
@@ -266,7 +278,7 @@ Panel {
               text: liveStore ? liveStore.fieldValue("name") : ""
               color: root.contentForeground
               font.family: root.contentFontFamily
-              font.pixelSize: Style.font.size(18)
+              font.pixelSize: Style.font.title
               font.bold: true
               wrapMode: Text.WordWrap
             }
@@ -279,7 +291,7 @@ Panel {
               color: root.contentForeground
               opacity: 0.55
               font.family: root.contentFontFamily
-              font.pixelSize: Style.font.size(12)
+              font.pixelSize: Style.font.body
               wrapMode: Text.WordWrap
             }
 
@@ -307,14 +319,14 @@ Panel {
                     color: root.contentForeground
                     opacity: 0.38
                     font.family: root.contentFontFamily
-                    font.pixelSize: Style.font.size(10)
+                    font.pixelSize: Style.font.caption
                   }
                   Text {
                     width: parent.width
                     text: liveStore ? liveStore.fieldValue(modelData.key) : ""
                     color: root.contentForeground
                     font.family: root.contentFontFamily
-                    font.pixelSize: Style.font.size(13)
+                    font.pixelSize: Style.font.subtitle
                     wrapMode: Text.WrapAnywhere
                   }
                 }
@@ -332,7 +344,7 @@ Panel {
                     text: "Copy"
                     color: root.contentForeground
                     font.family: root.contentFontFamily
-                    font.pixelSize: Style.font.size(10)
+                    font.pixelSize: Style.font.caption
                   }
                   MouseArea {
                     anchors.fill: parent
@@ -351,7 +363,7 @@ Panel {
               color: root.contentForeground
               opacity: 0.5
               font.family: root.contentFontFamily
-              font.pixelSize: Style.font.size(11)
+              font.pixelSize: Style.font.bodySmall
               wrapMode: Text.WordWrap
             }
 
@@ -370,7 +382,7 @@ Panel {
                 text: "Copy card"
                 color: root.contentForeground
                 font.family: root.contentFontFamily
-                font.pixelSize: Style.font.size(12)
+                font.pixelSize: Style.font.body
                 font.bold: true
               }
 
@@ -395,7 +407,7 @@ Panel {
               color: root.contentForeground
               opacity: 0.4
               font.family: root.contentFontFamily
-              font.pixelSize: Style.font.size(10)
+              font.pixelSize: Style.font.caption
               wrapMode: Text.WordWrap
             }
           }
@@ -408,7 +420,7 @@ Panel {
           color: root.contentForeground
           opacity: 0.22
           font.family: root.contentFontFamily
-          font.pixelSize: Style.font.size(10)
+          font.pixelSize: Style.font.caption
           wrapMode: Text.WordWrap
         }
       }

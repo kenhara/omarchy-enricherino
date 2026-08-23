@@ -100,7 +100,6 @@ BarWidget {
       zoominfoBearerToken: root.zoominfoBearerToken,
       providerMode: root.providerMode
     })
-    yellowStore.panelOpen = root.opened
   }
 
   function mirrorProviderMode(mode) {
@@ -115,7 +114,6 @@ BarWidget {
     injectPanel()
     syncStoreSettings()
   }
-  onOpenedChanged: yellowStore.panelOpen = root.opened
   onLeadmagicApiKeyChanged: syncStoreSettings()
   onZoominfoBearerTokenChanged: syncStoreSettings()
   onProviderModeChanged: syncStoreSettings()

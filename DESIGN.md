@@ -1,6 +1,6 @@
 # Yellow Pixels — design notes
 
-**Status:** 0.2.0 (hard redesign — one paste, FIND, contact card)  
+**Status:** 0.2.1 (hard redesign — one paste, FIND, contact card)  
 **Id:** `harris.yellow-pixels`  
 **Paths:** `/workspace/omarchy-yellow-pixels/` · playbook peers: Security Theater, Space Jockey
 

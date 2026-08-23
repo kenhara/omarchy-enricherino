@@ -11,7 +11,6 @@ QtObject {
   property string leadmagicApiKey: ""
   property string zoominfoBearerToken: ""
   property string providerMode: "waterfall"   // leadmagic | zoominfo | waterfall
-  property bool panelOpen: false
 
   property string inputMode: "email"   // email | profile | name_company | phone
   property string emailInput: ""
@@ -28,7 +27,6 @@ QtObject {
   property var lastResult: null   // full JSON from lookup.py (no keys)
   property string lookupBuf: ""
   property string lookedUpAt: ""
-  property string dataSource: "none"   // disk | lookup | none
 
   readonly property string cacheDir: Quickshell.env("HOME") + "/.cache/yellow-pixels"
   readonly property string cachePath: cacheDir + "/last.json"
@@ -50,8 +48,6 @@ QtObject {
     return store.hasLeadmagicKey || store.hasZoominfoToken
   }
 
-  readonly property bool hasCachedResult: !!(store.lastResult && typeof store.lastResult === "object")
-
   readonly property string keysHint: {
     if (store.hasAnyKey) return ""
     return "add keys in widget settings"
@@ -67,8 +63,6 @@ QtObject {
     if (m === "name_company") return "looks like name + company"
     return ""
   }
-
-  signal dataChanged()
 
   function normalizeProvider(p) {
     var s = String(p || "waterfall").toLowerCase()
@@ -92,17 +86,14 @@ QtObject {
       store.zoominfoBearerToken = String(opts.zoominfoBearerToken || "")
     if (opts.providerMode !== undefined)
       store.providerMode = store.normalizeProvider(opts.providerMode)
-    store.dataChanged()
   }
 
   function setProviderMode(mode) {
     store.providerMode = store.normalizeProvider(mode)
-    store.dataChanged()
   }
 
   function setInputMode(mode) {
     store.inputMode = store.normalizeInputMode(mode)
-    store.dataChanged()
   }
 
   function detectMode(text) {
@@ -184,7 +175,6 @@ QtObject {
     if (!text.length) {
       store.lastError = "Paste something to look up"
       store.showToast(store.lastError)
-      store.dataChanged()
       return
     }
     var mode = store.detectMode(text)
@@ -237,19 +227,20 @@ QtObject {
       return false
     }
     try {
-      if (typeof Quickshell !== "undefined" && Quickshell.clipboard) {
-        Quickshell.clipboard.text = t
+      if (typeof Quickshell !== "undefined" && Quickshell.clipboardText !== undefined) {
+        Quickshell.clipboardText = t
         store.showToast("Copied")
         return true
       }
     } catch (e) {}
+    // Shell fallback: exactly one of wl-copy / xclip / xsel; bash -c (not -lc).
+    // Toast only on copyProc success (onExited) — never claim Copied early.
     copyProc.command = [
-      "bash", "-lc",
-      "printf '%s' \"$1\" | (command -v wl-copy >/dev/null && wl-copy || command -v xclip >/dev/null && xclip -selection clipboard || command -v xsel >/dev/null && xsel --clipboard --input || cat >/dev/null)",
+      "bash", "-c",
+      't="$1"; if command -v wl-copy >/dev/null 2>&1; then printf "%s" "$t" | wl-copy; elif command -v xclip >/dev/null 2>&1; then printf "%s" "$t" | xclip -selection clipboard; elif command -v xsel >/dev/null 2>&1; then printf "%s" "$t" | xsel --clipboard --input; else exit 127; fi',
       "yp-copy", t
     ]
     copyProc.running = true
-    store.showToast("Copied")
     return true
   }
 
@@ -335,13 +326,11 @@ QtObject {
     if (verr) {
       store.lastError = verr
       store.showToast(verr)
-      store.dataChanged()
       return
     }
     if (!store.hasAnyKey) {
       store.lastError = store.keysHint || "Add API key in widget settings"
       store.showToast(store.lastError)
-      store.dataChanged()
       return
     }
     store.loading = true
@@ -352,19 +341,20 @@ QtObject {
     var jsonBlob = JSON.stringify(store.buildInputs())
     var lm = String(store.leadmagicApiKey || "")
     var zi = String(store.zoominfoBearerToken || "")
-    // Keys only in process env for this one call — never written to cache/disk.
+    // Keys via Process.environment only — never in argv, never written to cache/disk.
+    // clearEnvironment defaults false (inherit rest of env).
     lookupProc.command = [
-      "env",
-      "LEADMAGIC_API_KEY=" + lm,
-      "ZOOMINFO_BEARER_TOKEN=" + zi,
       "python3",
       store.lookupPath,
       "--provider", provider,
       "--mode", mode,
       "--json", jsonBlob
     ]
+    lookupProc.environment = ({
+      "LEADMAGIC_API_KEY": lm,
+      "ZOOMINFO_BEARER_TOKEN": zi
+    })
     lookupProc.running = true
-    store.dataChanged()
   }
 
   function stripSecrets(obj) {
@@ -406,21 +396,16 @@ QtObject {
 
   function persistToDisk(obj) {
     var body = JSON.stringify(obj || store.buildCacheObject(), null, 2) + "\n"
-    ensureCacheDir.running = true
-    Qt.callLater(function() {
-      try {
-        cacheFile.setText(body)
-      } catch (e) {}
-    })
+    try {
+      // FileView creates parent dirs (mkpath) on setText — no ensureCacheDir Process.
+      cacheFile.setText(body)
+    } catch (e) {}
   }
 
   function persistClear() {
-    ensureCacheDir.running = true
-    Qt.callLater(function() {
-      try {
-        cacheFile.setText(JSON.stringify({ version: 1, cleared: true }, null, 2) + "\n")
-      } catch (e) {}
-    })
+    try {
+      cacheFile.setText(JSON.stringify({ version: 1, cleared: true }, null, 2) + "\n")
+    } catch (e) {}
   }
 
   function applyCachedPayload(obj, source) {
@@ -433,9 +418,7 @@ QtObject {
       res = obj
     store.lastResult = store.stripSecrets(res)
     store.lookedUpAt = obj.lookedUpAt || ""
-    store.dataSource = source || "disk"
     store.lastError = ""
-    store.dataChanged()
     return true
   }
 
@@ -445,7 +428,6 @@ QtObject {
     store.lookupBuf = ""
     if (!raw.length) {
       store.lastError = "lookup produced no output (exit " + exitCode + ")"
-      store.dataChanged()
       return
     }
     // Prefer last non-empty JSON line
@@ -464,7 +446,6 @@ QtObject {
       var obj = JSON.parse(blob)
       store.lastResult = store.stripSecrets(obj)
       store.lookedUpAt = new Date().toISOString()
-      store.dataSource = "lookup"
       var errs = obj.errors || []
       if (errs && errs.length)
         store.lastError = String(errs[0])
@@ -479,10 +460,8 @@ QtObject {
       } else {
         store.showToast("No match")
       }
-      store.dataChanged()
     } catch (e) {
       store.lastError = "lookup JSON parse failed"
-      store.dataChanged()
     }
   }
 
@@ -490,10 +469,8 @@ QtObject {
     store.lastResult = null
     store.lastError = ""
     store.lookedUpAt = ""
-    store.dataSource = "none"
     store.persistClear()
     store.showToast("Cleared")
-    store.dataChanged()
   }
 
   function loadDiskText(text) {
@@ -586,14 +563,14 @@ QtObject {
   }
 
   Process {
-    id: ensureCacheDir
-    command: ["mkdir", "-p", store.cacheDir]
-    running: false
-  }
-
-  Process {
     id: copyProc
     running: false
+    onExited: function(exitCode, exitStatus) {
+      if (exitCode === 0)
+        store.showToast("Copied")
+      else
+        store.showToast("Copy failed")
+    }
   }
 
   Process {
