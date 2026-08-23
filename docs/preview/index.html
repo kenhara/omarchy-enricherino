@@ -3,18 +3,19 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Yellow Pixels — HTML mock v0.1.2</title>
+<title>Yellow Pixels — HTML mock v0.2.0</title>
 <style>
   :root {
     --bg: #000;
     --fg: rgba(240,240,250,1);
-    --mute: rgba(240,240,250,.4);
+    --mute: rgba(240,240,250,.45);
     --surface: rgba(240,240,250,.06);
     --yellow: #ffdb47;
+    --ink: #15140c;
     --font: system-ui, -apple-system, "Segoe UI", sans-serif;
     --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
     --bar-h: 36px;
-    --panel-w: 420px;
+    --panel-w: 400px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; background: #000; color: var(--fg); font-family: var(--font); }
@@ -23,18 +24,12 @@
       radial-gradient(ellipse 60% 40% at 75% 15%, rgba(255,219,71,.08), transparent 55%),
       linear-gradient(180deg, #0a0a0c, #000);
   }
-  button { font-family: inherit; }
+  button, textarea { font-family: inherit; }
   .banner {
     height: 28px; display: flex; align-items: center; justify-content: center; gap: 14px;
     background: #121218; border-bottom: 1px solid rgba(240,240,250,.08);
     font-size: 11px; letter-spacing: .06em; color: var(--mute); font-family: var(--mono);
   }
-  .banner .demo-toggle {
-    border: 1px solid rgba(255,219,71,.35); background: rgba(255,219,71,.08);
-    color: var(--yellow); border-radius: 4px; padding: 2px 8px; font-size: 10px;
-    letter-spacing: .04em; cursor: pointer; font-family: var(--mono);
-  }
-  .banner .demo-toggle:hover { background: rgba(255,219,71,.16); }
   .bar {
     height: var(--bar-h); display: flex; align-items: center; justify-content: space-between;
     padding: 0 12px 0 16px; background: rgba(12,12,14,.88); backdrop-filter: blur(12px);
@@ -51,303 +46,219 @@
   .wrap { position: relative; height: calc(100% - 28px - var(--bar-h)); overflow: auto; }
   .hint {
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-    opacity: .12; letter-spacing: .35em; text-transform: uppercase; font-size: 13px; pointer-events: none;
+    opacity: .1; letter-spacing: .35em; text-transform: uppercase; font-size: 13px; pointer-events: none;
   }
   .panel {
     position: absolute; top: 16px; right: 16px; width: var(--panel-w);
     background: linear-gradient(180deg, #121216, #0a0a0c); border: 1px solid rgba(240,240,250,.1);
-    border-radius: 14px; padding: 16px; box-shadow: 0 18px 48px rgba(0,0,0,.65);
-    display: flex; flex-direction: column; gap: 12px;
+    border-radius: 14px; padding: 18px; box-shadow: 0 18px 48px rgba(0,0,0,.65);
+    display: flex; flex-direction: column; gap: 14px;
     max-height: calc(100% - 32px); overflow: auto;
   }
   .head h1 {
-    font-size: 13px; letter-spacing: .22em; font-weight: 700;
-    display: flex; gap: 8px; align-items: center;
+    font-size: 18px; letter-spacing: .22em; font-weight: 700; color: var(--yellow);
   }
-  .head h1 .dot { color: var(--yellow); }
-  .head .sub { font-size: 11px; color: var(--mute); margin-top: 4px; }
-  .chips, .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
-  .chip, .tab, .copy {
-    border: 1px solid rgba(240,240,250,.12); background: var(--surface); color: var(--fg);
-    border-radius: 6px; padding: 5px 10px; font-size: 11px; cursor: pointer;
+  .head .sub { font-size: 12px; color: var(--mute); margin-top: 6px; }
+  .paste-wrap {
+    background: var(--surface); border: 1px solid rgba(240,240,250,.14);
+    border-radius: 10px; padding: 10px; min-height: 72px;
   }
-  .tab { padding: 4px 10px; border-radius: 5px; background: transparent; border-color: transparent; opacity: .55; }
-  .chip:hover, .tab:hover, .copy:hover { background: rgba(240,240,250,.1); }
-  .chip.on {
-    background: rgba(255,219,71,.22); border-color: rgba(255,219,71,.55); font-weight: 700;
+  .paste {
+    width: 100%; min-height: 52px; background: transparent; border: none; outline: none;
+    color: var(--fg); font-size: 13px; resize: vertical; line-height: 1.4;
   }
-  .tab.on {
-    background: rgba(240,240,250,.12); border: 1px solid rgba(240,240,250,.14);
-    font-weight: 700; opacity: 1;
-  }
-  .field-label { font-size: 10px; color: var(--mute); margin-bottom: 4px; }
-  .field {
-    background: var(--surface); border: 1px solid rgba(240,240,250,.12);
-    border-radius: 6px; padding: 8px 10px; font-size: 12px; color: var(--fg);
-    width: 100%; outline: none;
-  }
-  .field::placeholder { color: var(--mute); }
-  .field:focus { border-color: rgba(255,219,71,.4); }
-  .lookup {
-    background: rgba(255,219,71,.28); border: 1px solid rgba(255,219,71,.55);
-    border-radius: 8px; padding: 9px; text-align: center; font-weight: 700;
-    font-size: 12px; cursor: pointer; color: var(--fg); width: 100%;
-  }
-  .lookup:hover { background: rgba(255,219,71,.36); }
-  .lookup:disabled { opacity: .55; cursor: default; }
-  .banner-keys {
-    background: rgba(255,219,71,.1); border: 1px solid rgba(255,219,71,.35);
-    border-radius: 8px; padding: 10px; font-size: 12px; display: none;
-  }
-  .banner-keys strong { color: var(--yellow); display: block; margin-bottom: 4px; }
-  .banner-keys .hint-line { color: var(--mute); font-size: 11px; margin-top: 2px; }
-  .banner-keys .hint-sub { color: rgba(240,240,250,.35); font-size: 10px; margin-top: 6px; }
-  body.keys-missing .banner-keys { display: block; }
+  .paste::placeholder { color: rgba(240,240,250,.32); }
+  .mode-hint { font-size: 10px; color: var(--mute); min-height: 14px; }
+  .keys-line { font-size: 10px; color: var(--yellow); opacity: .75; display: none; }
+  body.keys-missing .keys-line { display: block; }
   body.keys-missing .card { display: none; }
-  .card {
-    background: var(--surface); border: 1px solid rgba(240,240,250,.1);
-    border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 10px;
+  .find {
+    background: var(--yellow); border: none; border-radius: 10px; padding: 14px;
+    text-align: center; font-weight: 700; font-size: 15px; letter-spacing: .18em;
+    cursor: pointer; color: var(--ink); width: 100%;
   }
-  .card-head {
-    display: flex; justify-content: space-between; align-items: center; gap: 8px;
-  }
-  .card-head .title { font-size: 12px; font-weight: 700; }
-  .card-head .meta { font-size: 11px; color: var(--mute); margin-left: 6px; font-weight: 400; }
-  .row {
-    display: flex; justify-content: space-between; gap: 8px; align-items: flex-start;
-  }
-  .lbl { font-size: 10px; color: var(--mute); }
-  .lbl .src {
-    display: inline-block; margin-left: 4px; padding: 0 5px; border-radius: 3px;
-    background: rgba(255,219,71,.12); color: rgba(255,219,71,.85);
-    font-size: 9px; letter-spacing: .02em; vertical-align: 1px;
-  }
-  .val { font-size: 12px; margin-top: 2px; word-break: break-all; }
-  .copy {
-    flex-shrink: 0; padding: 3px 8px; font-size: 10px; align-self: center;
-  }
-  .copy.flash { background: rgba(255,219,71,.22); border-color: rgba(255,219,71,.55); }
-  .foot {
-    display: flex; flex-direction: column; gap: 4px;
-    font-size: 10px; color: var(--mute); line-height: 1.45;
-  }
-  .foot .cap { opacity: .78; }
-  .foot .unoff { opacity: .55; }
+  .find:hover { filter: brightness(1.05); }
+  .find:disabled { opacity: .7; cursor: default; }
   .toast {
     font-size: 11px; color: var(--yellow); min-height: 14px; opacity: 0;
     transition: opacity .2s;
   }
   .toast.show { opacity: 1; }
-  .inputs { display: flex; flex-direction: column; gap: 8px; }
-  .input-block { display: none; }
-  .input-block.on { display: block; }
+  .card {
+    background: var(--surface); border: 1px solid rgba(255,219,71,.22);
+    border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .card .name { font-size: 18px; font-weight: 700; }
+  .card .role { font-size: 12px; color: var(--mute); }
+  .card .rule { height: 1px; background: rgba(240,240,250,.1); margin: 2px 0; }
+  .row {
+    display: flex; justify-content: space-between; gap: 8px; align-items: flex-start;
+  }
+  .lbl { font-size: 10px; color: rgba(240,240,250,.38); }
+  .val { font-size: 13px; margin-top: 2px; word-break: break-all; }
+  .copy {
+    flex-shrink: 0; padding: 5px 10px; font-size: 10px; align-self: center;
+    border: 1px solid rgba(240,240,250,.12); background: rgba(240,240,250,.08);
+    color: var(--fg); border-radius: 6px; cursor: pointer;
+  }
+  .copy:hover { background: rgba(240,240,250,.14); }
+  .copy.flash { background: rgba(255,219,71,.22); border-color: rgba(255,219,71,.55); }
+  .copy-card {
+    background: rgba(255,219,71,.16); border: 1px solid rgba(255,219,71,.4);
+    border-radius: 8px; padding: 9px; text-align: center; font-weight: 700;
+    font-size: 12px; cursor: pointer; color: var(--fg); width: 100%;
+  }
+  .copy-card:hover { background: rgba(255,219,71,.24); }
+  .foot {
+    font-size: 10px; color: var(--mute); opacity: .55; line-height: 1.45;
+  }
 </style>
 </head>
 <body>
   <div class="banner">
-    <span>HTML mock v0.1.2 · not live APIs</span>
-    <button type="button" class="demo-toggle" id="demoToggle" title="Toggle demo state">demo: result</button>
+    <span>HTML mock v0.2.0 · not live APIs</span>
   </div>
   <div class="bar">
     <div class="bar-brand">OMARCHY</div>
-    <button type="button" class="pill" id="barPill" title="Toggle panel"><span class="dot">●</span> YP</button>
+    <button type="button" class="pill" id="barPill" title="Yellow Pixels — look somebody up · middle: clear"><span class="dot">●</span> YP</button>
   </div>
   <div class="wrap">
-    <div class="hint">desktop</div>
+    <div class="hint">pixel desk</div>
     <div class="panel" id="panel">
       <div class="head">
-        <h1><span class="dot">●</span> YELLOW PIXELS</h1>
-        <div class="sub">individual lookup · not for blast outbound</div>
+        <h1>YELLOW PIXELS</h1>
+        <div class="sub">look somebody up</div>
       </div>
 
-      <div class="chips" id="chips" role="group" aria-label="Provider">
-        <button type="button" class="chip" data-provider="leadmagic">LeadMagic</button>
-        <button type="button" class="chip" data-provider="zoominfo">ZoomInfo</button>
-        <button type="button" class="chip on" data-provider="waterfall">Waterfall</button>
-      </div>
-
-      <div class="banner-keys" id="keysBanner">
-        <strong>Keys</strong>
-        <div class="hint-line">Keys — add LeadMagic and/or ZoomInfo in widget settings before Lookup.</div>
-        <div class="hint-sub">Open widget settings → LeadMagic API key and/or ZoomInfo bearer token. Defaults stay empty; never commit real keys.</div>
-      </div>
-
-      <div class="tabs" id="tabs" role="tablist" aria-label="Input mode">
-        <button type="button" class="tab on" data-mode="email" role="tab">Email</button>
-        <button type="button" class="tab" data-mode="profile" role="tab">Profile</button>
-        <button type="button" class="tab" data-mode="name_company" role="tab">Name+co</button>
-        <button type="button" class="tab" data-mode="phone" role="tab">Phone</button>
-      </div>
-
-      <div class="inputs">
-        <div class="input-block on" data-mode="email">
-          <div class="field-label">Work or personal email</div>
-          <input class="field" id="emailInput" type="text" value="alex@example.com" spellcheck="false" />
+      <div>
+        <div class="paste-wrap">
+          <textarea class="paste" id="paste" rows="3" spellcheck="false"
+            placeholder="email, LinkedIn, X, phone, or Name at company.com">alex@example.com</textarea>
         </div>
-        <div class="input-block" data-mode="profile">
-          <div class="field-label">LinkedIn or X/Twitter profile URL (LinkedIn hits more; X is best-effort)</div>
-          <input class="field" type="text" value="https://www.linkedin.com/in/alex" spellcheck="false" />
-        </div>
-        <div class="input-block" data-mode="name_company">
-          <div class="field-label">Full name</div>
-          <input class="field" type="text" value="Alex Example" spellcheck="false" style="margin-bottom:8px" />
-          <div class="field-label">Domain (preferred) or company name</div>
-          <input class="field" type="text" value="example.com" spellcheck="false" />
-        </div>
-        <div class="input-block" data-mode="phone">
-          <div class="field-label">Phone number (ZoomInfo-only — LeadMagic skips phone → contact)</div>
-          <input class="field" type="text" value="+1 415 555 0199" spellcheck="false" />
-        </div>
+        <div class="mode-hint" id="modeHint">looks like an email</div>
+        <div class="keys-line" id="keysLine">add keys in widget settings</div>
       </div>
 
-      <button type="button" class="lookup" id="lookupBtn">Lookup</button>
+      <button type="button" class="find" id="findBtn">FIND</button>
       <div class="toast" id="toast" aria-live="polite"></div>
 
       <div class="card" id="resultCard">
-        <div class="card-head">
-          <div>
-            <span class="title">Result</span>
-            <span class="meta" id="resultMeta">waterfall · ok</span>
-          </div>
-          <button type="button" class="copy" data-copy-all>Copy all</button>
-        </div>
+        <div class="name">Alex Example</div>
+        <div class="role">Product Manager · Example Corp</div>
+        <div class="rule"></div>
 
-        <div class="row" data-field="name">
-          <div>
-            <div class="lbl">Name <span class="src">LeadMagic</span></div>
-            <div class="val">Alex Example</div>
-          </div>
-          <button type="button" class="copy" data-copy>Copy</button>
-        </div>
-        <div class="row" data-field="title">
-          <div>
-            <div class="lbl">Title <span class="src">LeadMagic</span></div>
-            <div class="val">Product Manager</div>
-          </div>
-          <button type="button" class="copy" data-copy>Copy</button>
-        </div>
-        <div class="row" data-field="company">
-          <div>
-            <div class="lbl">Company <span class="src">LeadMagic</span></div>
-            <div class="val">Example Corp</div>
-          </div>
-          <button type="button" class="copy" data-copy>Copy</button>
-        </div>
         <div class="row" data-field="email">
           <div>
-            <div class="lbl">Email <span class="src">ZoomInfo</span></div>
+            <div class="lbl">Email</div>
             <div class="val">alex@example.com</div>
           </div>
           <button type="button" class="copy" data-copy>Copy</button>
         </div>
         <div class="row" data-field="phone">
           <div>
-            <div class="lbl">Phone <span class="src">ZoomInfo</span></div>
+            <div class="lbl">Phone</div>
             <div class="val">+1 415 555 0199</div>
           </div>
           <button type="button" class="copy" data-copy>Copy</button>
         </div>
         <div class="row" data-field="linkedin">
           <div>
-            <div class="lbl">LinkedIn <span class="src">LeadMagic</span></div>
+            <div class="lbl">LinkedIn</div>
             <div class="val">https://www.linkedin.com/in/alex</div>
           </div>
           <button type="button" class="copy" data-copy>Copy</button>
         </div>
         <div class="row" data-field="twitter">
           <div>
-            <div class="lbl">X / Twitter <span class="src">ZoomInfo</span></div>
+            <div class="lbl">X</div>
             <div class="val">https://x.com/alex</div>
           </div>
           <button type="button" class="copy" data-copy>Copy</button>
         </div>
+
+        <button type="button" class="copy-card" data-copy-all>Copy card</button>
       </div>
 
-      <div class="foot">
-        <div class="cap">Phone → contact is ZoomInfo-only (LeadMagic skips) · X/Twitter profile URL is best-effort (LinkedIn hits more) · not for blast outbound</div>
-        <div class="unoff">Unofficial · not affiliated with LeadMagic, ZoomInfo, or GTM.AI · individual follow-up only</div>
-      </div>
+      <div class="foot">unofficial · waterfall under the hood · not a sequencer</div>
     </div>
   </div>
 
 <script>
 (function () {
-  var provider = 'waterfall';
-  var mode = 'email';
-  var demo = 'result'; // result | keys
   var toastTimer = null;
-
-  var chips = document.getElementById('chips');
-  var tabs = document.getElementById('tabs');
-  var lookupBtn = document.getElementById('lookupBtn');
-  var demoToggle = document.getElementById('demoToggle');
+  var shown = true;
+  var paste = document.getElementById('paste');
+  var modeHint = document.getElementById('modeHint');
+  var findBtn = document.getElementById('findBtn');
   var toast = document.getElementById('toast');
-  var resultMeta = document.getElementById('resultMeta');
+  var card = document.getElementById('resultCard');
   var panel = document.getElementById('panel');
 
   function showToast(msg) {
     toast.textContent = msg;
     toast.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () {
-      toast.classList.remove('show');
-    }, 1600);
+    toastTimer = setTimeout(function () { toast.classList.remove('show'); }, 1600);
   }
 
-  function setDemo(next) {
-    demo = next;
-    document.body.classList.toggle('keys-missing', demo === 'keys');
-    demoToggle.textContent = 'demo: ' + (demo === 'keys' ? 'keys missing' : 'result');
+  function detectMode(text) {
+    var t = (text || '').trim();
+    if (!t) return '';
+    var lower = t.toLowerCase();
+    if (/https?:\/\//i.test(t) || lower.indexOf('linkedin.com') >= 0
+        || lower.indexOf('twitter.com') >= 0 || lower.indexOf('x.com/') >= 0)
+      return 'profile';
+    var digits = (t.match(/\d/g) || []).length;
+    var nonSpace = t.replace(/\s/g, '').length;
+    var hasLetters = /[A-Za-z]{2,}/.test(t);
+    if (!hasLetters && nonSpace >= 7 && digits >= 7 && digits / Math.max(1, nonSpace) >= 0.7)
+      return 'phone';
+    if (/\s+at\s+/i.test(t) || /\s+@\s+/.test(t) || /,\s*[\w.-]+\.\w{2,}/.test(t))
+      return 'name_company';
+    if (t.indexOf('@') >= 0) return 'email';
+    if (/\S+\s+.+/.test(t) && /\.\w{2,}/.test(t)) return 'name_company';
+    return 'email';
   }
 
-  function setProvider(p) {
-    provider = p;
-    chips.querySelectorAll('.chip').forEach(function (el) {
-      el.classList.toggle('on', el.dataset.provider === p);
-    });
-    resultMeta.textContent = p + ' · ok';
+  function labelFor(m) {
+    if (m === 'email') return 'looks like an email';
+    if (m === 'profile') return 'looks like a profile URL';
+    if (m === 'phone') return 'looks like a phone';
+    if (m === 'name_company') return 'looks like name + company';
+    return '';
   }
 
-  function setMode(m) {
-    mode = m;
-    tabs.querySelectorAll('.tab').forEach(function (el) {
-      el.classList.toggle('on', el.dataset.mode === m);
-    });
-    document.querySelectorAll('.input-block').forEach(function (el) {
-      el.classList.toggle('on', el.dataset.mode === m);
-    });
+  function refreshHint() {
+    modeHint.textContent = labelFor(detectMode(paste.value));
   }
 
-  chips.addEventListener('click', function (e) {
-    var btn = e.target.closest('.chip');
-    if (!btn) return;
-    setProvider(btn.dataset.provider);
+  paste.addEventListener('input', refreshHint);
+  paste.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      findBtn.click();
+    }
   });
 
-  tabs.addEventListener('click', function (e) {
-    var btn = e.target.closest('.tab');
-    if (!btn) return;
-    setMode(btn.dataset.mode);
-  });
-
-  demoToggle.addEventListener('click', function () {
-    setDemo(demo === 'result' ? 'keys' : 'result');
-  });
-
-  lookupBtn.addEventListener('click', function () {
-    if (demo === 'keys') {
-      showToast('Add keys in widget settings');
+  findBtn.addEventListener('click', function () {
+    if (document.body.classList.contains('keys-missing')) {
+      showToast('add keys in widget settings');
       return;
     }
-    lookupBtn.disabled = true;
-    lookupBtn.textContent = 'Looking up…';
+    if (!paste.value.trim()) {
+      showToast('Paste something to look up');
+      return;
+    }
+    findBtn.disabled = true;
+    findBtn.textContent = 'FINDING…';
+    card.style.display = 'none';
     setTimeout(function () {
-      lookupBtn.disabled = false;
-      lookupBtn.textContent = 'Lookup';
-      document.getElementById('resultCard').style.display = 'flex';
-      resultMeta.textContent = provider + ' · ok';
+      findBtn.disabled = false;
+      findBtn.textContent = 'FIND';
+      card.style.display = 'flex';
+      shown = true;
       showToast('Sample result (mock — no live APIs)');
-    }, 420);
+    }, 380);
   });
 
   document.getElementById('barPill').addEventListener('click', function () {
@@ -359,18 +270,16 @@
     setTimeout(function () { btn.classList.remove('flash'); }, 500);
   }
 
-  document.getElementById('resultCard').addEventListener('click', function (e) {
-    var btn = e.target.closest('.copy');
+  document.getElementById('panel').addEventListener('click', function (e) {
+    var btn = e.target.closest('.copy, .copy-card');
     if (!btn) return;
     var text = '';
     if (btn.hasAttribute('data-copy-all')) {
-      var lines = [];
+      var lines = ['Alex Example', 'Product Manager · Example Corp'];
       document.querySelectorAll('#resultCard .row').forEach(function (row) {
         var lbl = row.querySelector('.lbl');
         var val = row.querySelector('.val');
-        if (lbl && val) {
-          lines.push(lbl.childNodes[0].textContent.trim() + ': ' + val.textContent.trim());
-        }
+        if (lbl && val) lines.push(lbl.textContent.trim() + ': ' + val.textContent.trim());
       });
       text = lines.join('\n');
     } else {
@@ -380,22 +289,16 @@
     }
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(function () {
-        flash(btn);
-        showToast('Copied');
-      }).catch(function () {
-        flash(btn);
-        showToast('Copied (mock)');
-      });
+        flash(btn); showToast('Copied');
+      }).catch(function () { flash(btn); showToast('Copied (mock)'); });
     } else {
-      flash(btn);
-      showToast('Copied (mock)');
+      flash(btn); showToast('Copied (mock)');
     }
   });
 
-  // Default screenshot state: filled result, Waterfall, Email
-  setDemo('result');
-  setProvider('waterfall');
-  setMode('email');
+  // Default screenshot state: filled contact card after FIND
+  refreshHint();
+  card.style.display = 'flex';
 })();
 </script>
 </body>

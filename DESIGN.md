@@ -1,24 +1,23 @@
 # Yellow Pixels — design notes
 
-**Status:** 0.1.2 (UI polish / richer preview)  
+**Status:** 0.2.0 (hard redesign — one paste, FIND, contact card)  
 **Id:** `harris.yellow-pixels`  
 **Paths:** `/workspace/omarchy-yellow-pixels/` · playbook peers: Security Theater, Space Jockey
 
 ## Why
 
-Personal, joke-friendly **yellow pages** for one person at a time. Not a
-sequencer, not blast outbound, not a CRM. Enrich a single follow-up contact
-from email / LinkedIn-or-X URL / name+company / phone via LeadMagic and/or
-ZoomInfo GTM.
+Personal, joke-friendly **yellow pages / pixel desk**. Look somebody up in
+≤10 seconds. Not a sequencer, not blast outbound, not a CRM. Enrich a single
+follow-up contact via LeadMagic and/or ZoomInfo GTM under the hood.
 
 ## Shape (playbook)
 
 | Lesson | Apply |
 |--------|--------|
 | `bar-widget` + nested `Panel.qml` | Same — no separate panel kind |
-| Theme tokens (`Color` / `Style` / `bar.foreground`) | Warm yellow accent only for chips / CTA |
-| Schema knobs early | API keys + `providerMode` |
-| Honest empty/error | **Keys** empty state; API credits/errors surfaced |
+| Theme tokens (`Color` / `Style` / `bar.foreground`) | Yellow accent on title + FIND |
+| Schema knobs early | API keys + `providerMode` (advanced only) |
+| Honest empty/error | One-liner keys hint; toast on miss |
 | Ship extras | `preview.png`, Remove / Security baseline / Controls |
 | Cache last success | `~/.cache/yellow-pixels/last.json` (never keys) |
 | Middle-click useful | Clear last result + toast "Cleared" |
@@ -27,22 +26,27 @@ ZoomInfo GTM.
 
 ## Bar
 
-`● YP` — left click toggles panel. Middle click clears last result / cache
-(does **not** auto-lookup).
+`● YP` — left click toggles panel. Tooltip: *Yellow Pixels — look somebody up ·
+middle: clear*. Middle click clears last result / cache (does **not** auto-lookup).
 
-## Panel
+## Panel (0.2.0)
 
-Header **YELLOW PIXELS** + sub *individual lookup · not for blast outbound*.
-Provider chips, **Keys** empty state when missing credentials, input tabs,
-Lookup, result card with per-field source + copy. Footer states honest limits:
-phone = ZoomInfo-only; X/Twitter URL best-effort; not for blast outbound.
+1. Big **YELLOW PIXELS** (letter-spacing) + *look somebody up*
+2. One multiline/paste field
+3. Huge yellow **FIND**
+4. Tiny detected-mode hint under the field
+5. Compact “add keys in widget settings” if no keys
+6. Contact card: name big, title · company, email/phone/LinkedIn/X + Copy, **Copy card**
+7. Quiet footer: unofficial · waterfall under the hood · not a sequencer
 
-## Providers
+**Removed from primary UI:** provider chips, input mode tabs, per-mode fields.
+
+## Providers (schema / under the hood)
 
 - **leadmagic** — `X-API-Key` → `https://api.leadmagic.io`
 - **zoominfo** — Bearer → GTM enrich
-- **waterfall** — LeadMagic first, ZoomInfo fills gaps
+- **waterfall** — LeadMagic first, ZoomInfo fills gaps (default)
 
-## Non-goals (MVP)
+## Non-goals
 
 Scaled outbound, sequencing, CRM writeback, bulk CSV, storing results server-side.

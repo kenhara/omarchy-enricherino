@@ -146,16 +146,9 @@ BarWidget {
     text: yellowStore.barLabel || "● YP"
     horizontalMargin: 8.5
     tooltipText: {
-      var tip = "Yellow Pixels — individual lookup"
-      var mode = yellowStore.providerMode || "waterfall"
-      tip += " · " + mode
-      if (!yellowStore.hasAnyKey)
-        tip += " · add API key in settings"
-      else if (yellowStore.loading)
-        tip += " · looking up…"
-      else if (yellowStore.lastUpdatedText && yellowStore.lastUpdatedText !== "never")
-        tip += " · last " + yellowStore.lastUpdatedText
-      tip += " · middle: clear · not for blast outbound"
+      var tip = "Yellow Pixels — look somebody up · middle: clear"
+      if (yellowStore.loading)
+        tip = "Yellow Pixels — finding… · middle: clear"
       return tip
     }
     onPressed: function(buttonCode) {

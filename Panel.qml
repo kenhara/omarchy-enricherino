@@ -4,6 +4,7 @@ import qs.Commons
 import qs.Ui
 
 // Nested details panel for Yellow Pixels (loaded by BarWidget — not a separate kind).
+// 0.2.0 — one paste field, FIND, contact card. No provider chips / input tabs.
 Panel {
   id: root
   moduleName: "harris.yellow-pixels"
@@ -46,36 +47,34 @@ Panel {
     return acted
   }
 
-  function chipSelected(mode) {
-    return liveStore && liveStore.providerMode === mode
-  }
-
-  function tabSelected(mode) {
-    return liveStore && liveStore.inputMode === mode
-  }
-
-  function selectProvider(mode) {
-    if (!liveStore) return
-    liveStore.setProviderMode(mode)
-    if (hostWidget && typeof hostWidget.mirrorProviderMode === "function")
-      hostWidget.mirrorProviderMode(mode)
-  }
-
-  function resultRows() {
+  function contactRows() {
     return [
-      { key: "name", label: "Name" },
-      { key: "title", label: "Title" },
-      { key: "company", label: "Company" },
       { key: "email", label: "Email" },
       { key: "phone", label: "Phone" },
       { key: "linkedin", label: "LinkedIn" },
-      { key: "twitter", label: "X / Twitter" },
-      { key: "profile_url", label: "Profile" }
+      { key: "twitter", label: "X" }
     ]
   }
 
-  implicitWidth: Style.space(420)
-  implicitHeight: Math.min(Style.space(760), contentCol.implicitHeight + Style.space(36))
+  function hasAnyContactField() {
+    if (!liveStore) return false
+    var keys = ["name", "title", "company", "email", "phone", "linkedin", "twitter", "profile_url"]
+    for (var i = 0; i < keys.length; i++) {
+      if (liveStore.fieldValue(keys[i]).length) return true
+    }
+    return false
+  }
+
+  function titleCompanyLine() {
+    if (!liveStore) return ""
+    var title = liveStore.fieldValue("title")
+    var company = liveStore.fieldValue("company")
+    if (title && company) return title + " · " + company
+    return title || company || ""
+  }
+
+  implicitWidth: Style.space(400)
+  implicitHeight: Math.min(Style.space(680), contentCol.implicitHeight + Style.space(36))
 
   Rectangle {
     anchors.fill: parent
@@ -94,397 +93,135 @@ Panel {
       Column {
         id: contentCol
         width: flick.width
-        spacing: Style.space(12)
+        spacing: Style.space(14)
         opacity: liveStore && liveStore.loading ? 0.72 : 1.0
 
         Behavior on opacity {
           NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
         }
 
-        // Header
+        // Header — big YELLOW PIXELS + one-line joke
         Column {
           width: parent.width
-          spacing: Style.space(4)
+          spacing: Style.space(6)
 
-          Row {
-            spacing: Style.space(8)
-            Text {
-              text: "●"
-              color: root.ypYellow
-              font.family: root.contentFontFamily
-              font.pixelSize: Style.font.size(14)
-            }
-            Text {
-              text: "YELLOW PIXELS"
+          Text {
+            text: "YELLOW PIXELS"
+            color: root.ypYellow
+            font.family: root.contentFontFamily
+            font.pixelSize: Style.font.size(18)
+            font.bold: true
+            font.letterSpacing: 3.2
+          }
+
+          Text {
+            text: "look somebody up"
+            color: root.contentForeground
+            opacity: 0.5
+            font.family: root.contentFontFamily
+            font.pixelSize: Style.font.size(12)
+            width: parent.width
+          }
+        }
+
+        // One paste field
+        Column {
+          width: parent.width
+          spacing: Style.space(6)
+
+          Rectangle {
+            width: parent.width
+            height: Math.max(Style.space(72), pasteEdit.implicitHeight + Style.space(20))
+            radius: 10
+            color: root.surfaceColor
+            border.width: 1
+            border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.14)
+
+            TextEdit {
+              id: pasteEdit
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.top: parent.top
+              anchors.margins: Style.space(10)
               color: root.contentForeground
               font.family: root.contentFontFamily
               font.pixelSize: Style.font.size(13)
-              font.bold: true
-              font.letterSpacing: 2.2
+              wrapMode: TextEdit.Wrap
+              selectByMouse: true
+              text: liveStore ? liveStore.pasteInput : ""
+              onTextChanged: if (liveStore) liveStore.pasteInput = text
+              Keys.onReturnPressed: function(event) {
+                if (event.modifiers & Qt.ShiftModifier) {
+                  event.accepted = false
+                  return
+                }
+                event.accepted = true
+                if (liveStore) liveStore.findFromPaste()
+              }
+
+              Text {
+                anchors.fill: parent
+                visible: !pasteEdit.text.length
+                text: "email, LinkedIn, X, phone, or Name at company.com"
+                color: root.contentForeground
+                opacity: 0.32
+                font.family: root.contentFontFamily
+                font.pixelSize: Style.font.size(13)
+                wrapMode: Text.WordWrap
+              }
             }
           }
 
+          // Tiny detected-mode hint
           Text {
-            text: "individual lookup · not for blast outbound"
+            width: parent.width
+            visible: liveStore && liveStore.detectedModeLabel && liveStore.detectedModeLabel.length
+            text: liveStore ? liveStore.detectedModeLabel : ""
             color: root.contentForeground
-            opacity: 0.45
+            opacity: 0.4
             font.family: root.contentFontFamily
-            font.pixelSize: Style.font.size(11)
+            font.pixelSize: Style.font.size(10)
+          }
+
+          // Compact keys one-liner (not a banner)
+          Text {
             width: parent.width
-            wrapMode: Text.WordWrap
+            visible: liveStore && !liveStore.hasAnyKey
+            text: liveStore ? (liveStore.keysHint || "add keys in widget settings") : "add keys in widget settings"
+            color: root.ypYellow
+            opacity: 0.75
+            font.family: root.contentFontFamily
+            font.pixelSize: Style.font.size(10)
           }
         }
 
-        // Provider chips
-        Row {
-          spacing: Style.space(6)
-          Repeater {
-            model: [
-              { id: "leadmagic", label: "LeadMagic" },
-              { id: "zoominfo", label: "ZoomInfo" },
-              { id: "waterfall", label: "Waterfall" }
-            ]
-            delegate: Rectangle {
-              required property var modelData
-              width: chipLab.implicitWidth + Style.space(14)
-              height: Style.space(26)
-              radius: 6
-              color: root.chipSelected(modelData.id)
-                ? Qt.rgba(root.ypYellow.r, root.ypYellow.g, root.ypYellow.b, 0.22)
-                : root.surfaceColor
-              border.width: 1
-              border.color: root.chipSelected(modelData.id)
-                ? Qt.rgba(root.ypYellow.r, root.ypYellow.g, root.ypYellow.b, 0.55)
-                : Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
-
-              Text {
-                id: chipLab
-                anchors.centerIn: parent
-                text: modelData.label
-                color: root.contentForeground
-                font.family: root.contentFontFamily
-                font.pixelSize: Style.font.size(11)
-                font.bold: root.chipSelected(modelData.id)
-              }
-
-              MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: root.selectProvider(modelData.id)
-              }
-            }
-          }
-        }
-
-        // Keys missing — empty-state clarity (Security Theater Checks pattern)
+        // Huge yellow FIND
         Rectangle {
           width: parent.width
-          visible: liveStore && !liveStore.hasAnyKey
-          height: visible ? keysCol.implicitHeight + Style.space(16) : 0
-          radius: 8
-          color: Qt.rgba(1.0, 0.86, 0.28, 0.1)
-          border.width: 1
-          border.color: Qt.rgba(1.0, 0.86, 0.28, 0.35)
-
-          Column {
-            id: keysCol
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.margins: Style.space(10)
-            spacing: Style.space(4)
-
-            Text {
-              text: "Keys"
-              color: root.ypYellow
-              font.family: root.contentFontFamily
-              font.pixelSize: Style.font.size(12)
-              font.bold: true
-              width: parent.width
-            }
-            Text {
-              text: liveStore
-                ? (liveStore.keysHint || "Keys — add LeadMagic and/or ZoomInfo in widget settings before Lookup.")
-                : "Keys — add LeadMagic and/or ZoomInfo in widget settings before Lookup."
-              color: root.contentForeground
-              opacity: 0.55
-              font.family: root.contentFontFamily
-              font.pixelSize: Style.font.size(11)
-              width: parent.width
-              wrapMode: Text.WordWrap
-            }
-            Text {
-              text: "Open widget settings → LeadMagic API key and/or ZoomInfo bearer token. Defaults stay empty; never commit real keys."
-              color: root.contentForeground
-              opacity: 0.35
-              font.family: root.contentFontFamily
-              font.pixelSize: Style.font.size(10)
-              width: parent.width
-              wrapMode: Text.WordWrap
-            }
-          }
-        }
-
-        // Input mode tabs
-        Row {
-          spacing: Style.space(4)
-          Repeater {
-            model: [
-              { id: "email", label: "Email" },
-              { id: "profile", label: "Profile URL" },
-              { id: "name_company", label: "Name + company" },
-              { id: "phone", label: "Phone" }
-            ]
-            delegate: Rectangle {
-              required property var modelData
-              width: tabLab.implicitWidth + Style.space(12)
-              height: Style.space(24)
-              radius: 5
-              color: root.tabSelected(modelData.id)
-                ? Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
-                : "transparent"
-              border.width: root.tabSelected(modelData.id) ? 1 : 0
-              border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.14)
-
-              Text {
-                id: tabLab
-                anchors.centerIn: parent
-                text: modelData.label
-                color: root.contentForeground
-                opacity: root.tabSelected(modelData.id) ? 1.0 : 0.55
-                font.family: root.contentFontFamily
-                font.pixelSize: Style.font.size(11)
-                font.bold: root.tabSelected(modelData.id)
-              }
-
-              MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: if (liveStore) liveStore.setInputMode(modelData.id)
-              }
-            }
-          }
-        }
-
-        // Input fields
-        Column {
-          width: parent.width
-          spacing: Style.space(8)
-          visible: liveStore !== null
-
-          // Email
-          Column {
-            width: parent.width
-            spacing: Style.space(4)
-            visible: liveStore && liveStore.inputMode === "email"
-            Text {
-              text: "Work or personal email"
-              color: root.contentForeground
-              opacity: 0.45
-              font.family: root.contentFontFamily
-              font.pixelSize: Style.font.size(10)
-            }
-            Rectangle {
-              width: parent.width
-              height: Style.space(32)
-              radius: 6
-              color: root.surfaceColor
-              border.width: 1
-              border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
-              TextInput {
-                id: emailField
-                anchors.fill: parent
-                anchors.margins: Style.space(8)
-                color: root.contentForeground
-                font.family: root.contentFontFamily
-                font.pixelSize: Style.font.size(12)
-                clip: true
-                selectByMouse: true
-                text: liveStore ? liveStore.emailInput : ""
-                onTextChanged: if (liveStore) liveStore.emailInput = text
-                Keys.onReturnPressed: if (liveStore) liveStore.lookup()
-              }
-            }
-          }
-
-          // Profile URL
-          Column {
-            width: parent.width
-            spacing: Style.space(4)
-            visible: liveStore && liveStore.inputMode === "profile"
-            Text {
-              text: "LinkedIn or X/Twitter profile URL (LinkedIn hits more; X is best-effort)"
-              color: root.contentForeground
-              opacity: 0.45
-              font.family: root.contentFontFamily
-              font.pixelSize: Style.font.size(10)
-              width: parent.width
-              wrapMode: Text.WordWrap
-            }
-            Rectangle {
-              width: parent.width
-              height: Style.space(32)
-              radius: 6
-              color: root.surfaceColor
-              border.width: 1
-              border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
-              TextInput {
-                anchors.fill: parent
-                anchors.margins: Style.space(8)
-                color: root.contentForeground
-                font.family: root.contentFontFamily
-                font.pixelSize: Style.font.size(12)
-                clip: true
-                selectByMouse: true
-                text: liveStore ? liveStore.profileUrlInput : ""
-                onTextChanged: if (liveStore) liveStore.profileUrlInput = text
-                Keys.onReturnPressed: if (liveStore) liveStore.lookup()
-              }
-            }
-          }
-
-          // Name + company
-          Column {
-            width: parent.width
-            spacing: Style.space(8)
-            visible: liveStore && liveStore.inputMode === "name_company"
-            Column {
-              width: parent.width
-              spacing: Style.space(4)
-              Text {
-                text: "Full name"
-                color: root.contentForeground
-                opacity: 0.45
-                font.family: root.contentFontFamily
-                font.pixelSize: Style.font.size(10)
-              }
-              Rectangle {
-                width: parent.width
-                height: Style.space(32)
-                radius: 6
-                color: root.surfaceColor
-                border.width: 1
-                border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
-                TextInput {
-                  anchors.fill: parent
-                  anchors.margins: Style.space(8)
-                  color: root.contentForeground
-                  font.family: root.contentFontFamily
-                  font.pixelSize: Style.font.size(12)
-                  clip: true
-                  selectByMouse: true
-                  text: liveStore ? liveStore.fullNameInput : ""
-                  onTextChanged: if (liveStore) liveStore.fullNameInput = text
-                }
-              }
-            }
-            Column {
-              width: parent.width
-              spacing: Style.space(4)
-              Text {
-                text: "Domain (preferred) or company name"
-                color: root.contentForeground
-                opacity: 0.45
-                font.family: root.contentFontFamily
-                font.pixelSize: Style.font.size(10)
-              }
-              Rectangle {
-                width: parent.width
-                height: Style.space(32)
-                radius: 6
-                color: root.surfaceColor
-                border.width: 1
-                border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
-                TextInput {
-                  anchors.fill: parent
-                  anchors.margins: Style.space(8)
-                  color: root.contentForeground
-                  font.family: root.contentFontFamily
-                  font.pixelSize: Style.font.size(12)
-                  clip: true
-                  selectByMouse: true
-                  text: liveStore ? (liveStore.domainInput || liveStore.companyInput) : ""
-                  onTextChanged: {
-                    if (!liveStore) return
-                    var t = text.trim()
-                    if (t.indexOf(".") >= 0 && t.indexOf(" ") < 0) {
-                      liveStore.domainInput = t
-                      liveStore.companyInput = ""
-                    } else {
-                      liveStore.companyInput = t
-                      liveStore.domainInput = ""
-                    }
-                  }
-                  Keys.onReturnPressed: if (liveStore) liveStore.lookup()
-                }
-              }
-            }
-          }
-
-          // Phone
-          Column {
-            width: parent.width
-            spacing: Style.space(4)
-            visible: liveStore && liveStore.inputMode === "phone"
-            Text {
-              text: "Phone number (ZoomInfo-only — LeadMagic skips phone → contact)"
-              color: root.contentForeground
-              opacity: 0.45
-              font.family: root.contentFontFamily
-              font.pixelSize: Style.font.size(10)
-              width: parent.width
-              wrapMode: Text.WordWrap
-            }
-            Rectangle {
-              width: parent.width
-              height: Style.space(32)
-              radius: 6
-              color: root.surfaceColor
-              border.width: 1
-              border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
-              TextInput {
-                anchors.fill: parent
-                anchors.margins: Style.space(8)
-                color: root.contentForeground
-                font.family: root.contentFontFamily
-                font.pixelSize: Style.font.size(12)
-                clip: true
-                selectByMouse: true
-                text: liveStore ? liveStore.phoneInput : ""
-                onTextChanged: if (liveStore) liveStore.phoneInput = text
-                Keys.onReturnPressed: if (liveStore) liveStore.lookup()
-              }
-            }
-          }
-        }
-
-        // Lookup button
-        Rectangle {
-          width: parent.width
-          height: Style.space(34)
-          radius: 8
-          color: Qt.rgba(root.ypYellow.r, root.ypYellow.g, root.ypYellow.b, 0.28)
-          border.width: 1
-          border.color: Qt.rgba(root.ypYellow.r, root.ypYellow.g, root.ypYellow.b, 0.55)
+          height: Style.space(48)
+          radius: 10
+          color: root.ypYellow
+          opacity: liveStore && liveStore.loading ? 0.7 : 1.0
 
           Text {
             anchors.centerIn: parent
-            text: liveStore && liveStore.loading ? "Looking up…" : "Lookup"
-            color: root.contentForeground
+            text: liveStore && liveStore.loading ? "FINDING…" : "FIND"
+            color: Qt.rgba(0.08, 0.07, 0.04, 1)
             font.family: root.contentFontFamily
-            font.pixelSize: Style.font.size(12)
+            font.pixelSize: Style.font.size(15)
             font.bold: true
+            font.letterSpacing: 2.4
           }
 
           MouseArea {
             anchors.fill: parent
             cursorShape: Qt.PointingHandCursor
             enabled: !(liveStore && liveStore.loading)
-            onClicked: if (liveStore) liveStore.lookup()
+            onClicked: if (liveStore) liveStore.findFromPaste()
           }
         }
 
-        // Error / status
+        // Toast / error
         Text {
           width: parent.width
           visible: liveStore && liveStore.lastError && liveStore.lastError.length
@@ -504,94 +241,71 @@ Panel {
           font.pixelSize: Style.font.size(11)
         }
 
-        // Result card
+        // Contact card
         Rectangle {
           width: parent.width
           visible: liveStore && liveStore.lastResult
-          height: visible ? resultInner.implicitHeight + Style.space(20) : 0
-          radius: 10
+          height: visible ? cardInner.implicitHeight + Style.space(24) : 0
+          radius: 12
           color: root.surfaceColor
           border.width: 1
-          border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.1)
+          border.color: Qt.rgba(root.ypYellow.r, root.ypYellow.g, root.ypYellow.b, 0.22)
 
           Column {
-            id: resultInner
+            id: cardInner
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
-            anchors.margins: Style.space(12)
-            spacing: Style.space(8)
+            anchors.margins: Style.space(14)
+            spacing: Style.space(10)
 
-            Row {
+            // Name big
+            Text {
               width: parent.width
-              spacing: Style.space(8)
-
-              Text {
-                text: "Result"
-                color: root.contentForeground
-                font.family: root.contentFontFamily
-                font.pixelSize: Style.font.size(12)
-                font.bold: true
-              }
-
-              Text {
-                text: {
-                  if (!liveStore || !liveStore.lastResult) return ""
-                  var p = liveStore.lastResult.provider || ""
-                  var ok = liveStore.lastResult.ok ? "ok" : "empty"
-                  return p + " · " + ok
-                }
-                color: root.contentForeground
-                opacity: 0.45
-                font.family: root.contentFontFamily
-                font.pixelSize: Style.font.size(11)
-              }
-
-              Item { width: Math.max(0, parent.width - 200); height: 1 }
-
-              Rectangle {
-                width: copyAllLab.implicitWidth + Style.space(12)
-                height: Style.space(22)
-                radius: 5
-                color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.08)
-                border.width: 1
-                border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
-                Text {
-                  id: copyAllLab
-                  anchors.centerIn: parent
-                  text: "Copy all"
-                  color: root.contentForeground
-                  font.family: root.contentFontFamily
-                  font.pixelSize: Style.font.size(10)
-                }
-                MouseArea {
-                  anchors.fill: parent
-                  cursorShape: Qt.PointingHandCursor
-                  onClicked: if (liveStore) liveStore.copyAll()
-                }
-              }
+              visible: liveStore && liveStore.fieldValue("name").length
+              text: liveStore ? liveStore.fieldValue("name") : ""
+              color: root.contentForeground
+              font.family: root.contentFontFamily
+              font.pixelSize: Style.font.size(18)
+              font.bold: true
+              wrapMode: Text.WordWrap
             }
 
+            // title · company
+            Text {
+              width: parent.width
+              visible: root.titleCompanyLine().length > 0
+              text: root.titleCompanyLine()
+              color: root.contentForeground
+              opacity: 0.55
+              font.family: root.contentFontFamily
+              font.pixelSize: Style.font.size(12)
+              wrapMode: Text.WordWrap
+            }
+
+            Rectangle {
+              width: parent.width
+              height: 1
+              visible: root.hasAnyContactField()
+              color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.1)
+            }
+
+            // email / phone / LinkedIn / X rows
             Repeater {
-              model: root.resultRows()
+              model: root.contactRows()
               delegate: Row {
                 required property var modelData
-                width: resultInner.width
-                spacing: Style.space(6)
-                visible: {
-                  if (!liveStore) return false
-                  var v = liveStore.fieldValue(modelData.key)
-                  return v && v.length
-                }
+                width: cardInner.width
+                spacing: Style.space(8)
+                visible: liveStore && liveStore.fieldValue(modelData.key).length > 0
 
                 Column {
-                  width: parent.width - Style.space(52)
+                  width: parent.width - Style.space(56)
                   spacing: 2
                   Text {
-                    text: modelData.label + (liveStore && liveStore.fieldSource(modelData.key)
-                      ? " · " + liveStore.fieldSource(modelData.key) : "")
+                    text: modelData.label
                     color: root.contentForeground
-                    opacity: 0.4
+                    opacity: 0.38
                     font.family: root.contentFontFamily
                     font.pixelSize: Style.font.size(10)
                   }
@@ -600,17 +314,19 @@ Panel {
                     text: liveStore ? liveStore.fieldValue(modelData.key) : ""
                     color: root.contentForeground
                     font.family: root.contentFontFamily
-                    font.pixelSize: Style.font.size(12)
+                    font.pixelSize: Style.font.size(13)
                     wrapMode: Text.WrapAnywhere
                   }
                 }
 
                 Rectangle {
-                  width: Style.space(40)
-                  height: Style.space(22)
-                  radius: 5
+                  width: Style.space(48)
+                  height: Style.space(26)
+                  radius: 6
                   anchors.verticalCenter: parent.verticalCenter
                   color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.08)
+                  border.width: 1
+                  border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
                   Text {
                     anchors.centerIn: parent
                     text: "Copy"
@@ -627,18 +343,11 @@ Panel {
               }
             }
 
-            // Empty result honesty
+            // Empty honesty
             Text {
               width: parent.width
-              visible: {
-                if (!liveStore || !liveStore.lastResult) return false
-                var keys = ["name", "title", "company", "email", "phone", "linkedin", "twitter", "profile_url"]
-                for (var i = 0; i < keys.length; i++) {
-                  if (liveStore.fieldValue(keys[i]).length) return false
-                }
-                return true
-              }
-              text: "No contact fields returned. Try another provider or input."
+              visible: liveStore && liveStore.lastResult && !root.hasAnyContactField()
+              text: "No contact fields returned. Try another paste."
               color: root.contentForeground
               opacity: 0.5
               font.family: root.contentFontFamily
@@ -646,26 +355,30 @@ Panel {
               wrapMode: Text.WordWrap
             }
 
-            // Credits / warnings
-            Text {
+            // One Copy card button
+            Rectangle {
               width: parent.width
-              visible: {
-                if (!liveStore || !liveStore.lastResult) return false
-                var c = liveStore.lastResult.credits || {}
-                return Object.keys(c).length > 0
+              height: Style.space(34)
+              radius: 8
+              visible: root.hasAnyContactField()
+              color: Qt.rgba(root.ypYellow.r, root.ypYellow.g, root.ypYellow.b, 0.16)
+              border.width: 1
+              border.color: Qt.rgba(root.ypYellow.r, root.ypYellow.g, root.ypYellow.b, 0.4)
+
+              Text {
+                anchors.centerIn: parent
+                text: "Copy card"
+                color: root.contentForeground
+                font.family: root.contentFontFamily
+                font.pixelSize: Style.font.size(12)
+                font.bold: true
               }
-              text: {
-                if (!liveStore || !liveStore.lastResult) return ""
-                var c = liveStore.lastResult.credits || {}
-                var parts = []
-                for (var k in c) parts.push(k + "=" + c[k])
-                return "Credits: " + parts.join(" · ")
+
+              MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: if (liveStore) liveStore.copyAll()
               }
-              color: root.contentForeground
-              opacity: 0.4
-              font.family: root.contentFontFamily
-              font.pixelSize: Style.font.size(10)
-              wrapMode: Text.WordWrap
             }
 
             Text {
@@ -677,28 +390,10 @@ Panel {
               }
               text: {
                 if (!liveStore || !liveStore.lastResult) return ""
-                return "Note: " + (liveStore.lastResult.warnings || []).join(" · ")
+                return (liveStore.lastResult.warnings || []).join(" · ")
               }
               color: root.contentForeground
-              opacity: 0.45
-              font.family: root.contentFontFamily
-              font.pixelSize: Style.font.size(10)
-              wrapMode: Text.WordWrap
-            }
-
-            Text {
-              width: parent.width
-              visible: {
-                if (!liveStore || !liveStore.lastResult) return false
-                var e = liveStore.lastResult.errors || []
-                return e && e.length
-              }
-              text: {
-                if (!liveStore || !liveStore.lastResult) return ""
-                return (liveStore.lastResult.errors || []).join(" · ")
-              }
-              color: Color.urgent
-              opacity: 0.85
+              opacity: 0.4
               font.family: root.contentFontFamily
               font.pixelSize: Style.font.size(10)
               wrapMode: Text.WordWrap
@@ -706,30 +401,15 @@ Panel {
           }
         }
 
-        // Honest capability + unofficial footer
-        Column {
+        // Quiet footer
+        Text {
           width: parent.width
-          spacing: Style.space(4)
-
-          Text {
-            width: parent.width
-            text: "Phone → contact is ZoomInfo-only (LeadMagic skips) · X/Twitter profile URL is best-effort (LinkedIn hits more) · not for blast outbound"
-            color: root.contentForeground
-            opacity: 0.32
-            font.family: root.contentFontFamily
-            font.pixelSize: Style.font.size(10)
-            wrapMode: Text.WordWrap
-          }
-
-          Text {
-            width: parent.width
-            text: "Unofficial · not affiliated with LeadMagic, ZoomInfo, or GTM.AI · individual follow-up only"
-            color: root.contentForeground
-            opacity: 0.22
-            font.family: root.contentFontFamily
-            font.pixelSize: Style.font.size(10)
-            wrapMode: Text.WordWrap
-          }
+          text: "unofficial · waterfall under the hood · not a sequencer"
+          color: root.contentForeground
+          opacity: 0.22
+          font.family: root.contentFontFamily
+          font.pixelSize: Style.font.size(10)
+          wrapMode: Text.WordWrap
         }
       }
     }

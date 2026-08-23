@@ -1,27 +1,29 @@
 # Yellow Pixels
 
-Individual contact lookup for Omarchy — **yellow-pages joke, not a sequencer.**
-Paste one email, LinkedIn/X URL, name+company, or phone; get a result card.
-LeadMagic and/or ZoomInfo (GTM.AI) enrich. Built as a native Quattro `bar-widget`.
+Individual contact lookup for Omarchy — **yellow-pages / pixel desk joke, not a sequencer.**
+Paste one thing. Hit **FIND**. Get a contact card. Delight in ≤10 seconds.
 
 **ID:** `harris.yellow-pixels`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.1.2
+**Version:** 0.2.0
+
+### 0.2.0
+- **Hard redesign — one paste, FIND, contact card.** Rip the SaaS form:
+  provider chips and input-mode tabs leave the primary UI. Paste anything
+  (email / LinkedIn / X / phone / `Name at company.com`); tiny detected-mode
+  hint updates as you type; huge yellow **FIND**; contact card with name big,
+  title · company, row Copy + **Copy card**. Keys hint is a one-liner. Quiet
+  footer: unofficial · waterfall under the hood · not a sequencer. Schema still
+  holds `leadmagicApiKey`, `zoominfoBearerToken`, `providerMode` (default
+  waterfall).
 
 ### 0.1.2
-- UI polish + richer HTML preview: interactive mock with filled sample result
-  card (Name/Title/Company/Email/Phone/LinkedIn/X + source tags), clickable
-  provider chips & input tabs, demo toggle (result vs keys-missing), honest
-  footer aligned with panel (phone = ZoomInfo-only · X best-effort · not for
-  blast outbound · unofficial).
+- UI polish + richer HTML preview (interactive mock, sample result card).
 
 ### 0.1.1
-- Playbook refresh (Security Theater ops exemplar): `preview.png`, Remove /
-  Security baseline / Controls, middle-click clears last result, cache last
-  successful lookup to `~/.cache/yellow-pixels/last.json` (never API keys),
-  honest capability copy (phone = ZoomInfo-only; X/Twitter best-effort),
-  clearer **Keys** empty state.
+- Playbook refresh: preview.png, middle-click clear, disk cache, honest
+  capability copy, clearer Keys empty state.
 
 ### 0.1.0
 - MVP — bar `● YP`, panel lookup, LeadMagic + ZoomInfo + waterfall, schema keys.
@@ -36,7 +38,7 @@ Local folder: **`omarchy-yellow-pixels`**.
 **Yellow Pixels is unofficial.** It is **not** affiliated with, endorsed by, or
 sponsored by LeadMagic, ZoomInfo, GTM.AI, or any related entity. It is a thin
 personal client that calls public/documented HTTP APIs with **your** keys.
-Use only for lawful individual follow-up. **Not for blast outbound.**
+Use only for lawful individual follow-up. **Not a sequencer.**
 
 ## Install
 
@@ -74,7 +76,8 @@ omarchy-shell shell rescanPlugins
 
 ## Configure keys
 
-Open **widget settings** for Yellow Pixels (Omarchy bar / plugin settings):
+Open **widget settings** for Yellow Pixels (Omarchy bar / plugin settings).
+Advanced / schema only — not in the primary panel UI:
 
 | Schema key | Label | Env passed to script |
 |------------|-------|----------------------|
@@ -86,6 +89,8 @@ Open **widget settings** for Yellow Pixels (Omarchy bar / plugin settings):
 the lookup process env for that one call only — they are **never** written to
 `~/.cache/yellow-pixels/`.
 
+Without keys, the panel shows a compact one-liner: **add keys in widget settings**.
+
 CLI smoke (optional):
 
 ```sh
@@ -94,21 +99,16 @@ export ZOOMINFO_BEARER_TOKEN='…'
 python3 scripts/lookup.py --provider waterfall --mode email --json '{"email":"a@b.com"}'
 ```
 
-Without keys, the script returns structured error JSON asking you to add keys
-in widget settings. The panel shows a **Keys** empty state until at least one
-required key is present for the selected provider mode.
-
 ## Usage
 
-- **Left-click** bar `● YP` to open/close the panel.
-- **Middle-click** clears the last result (and cache) with toast **Cleared** —
-  does **not** auto-fire paid APIs.
-- Pick provider chip: **LeadMagic** / **ZoomInfo** / **Waterfall**.
-- Pick input tab: **Email** | **Profile URL** | **Name + company** | **Phone**.
-- Hit **Lookup**. Result card shows name, title, company, email, phone,
-  LinkedIn / X, profile URL, and **which provider filled each field**.
-- **Copy** per field or **Copy all**.
-- Pointer cursor only on actionable controls.
+1. **Left-click** bar `● YP` → panel.
+2. Paste into the one field: email, LinkedIn, X, phone, or `Name at company.com`.
+3. Tiny hint under the field (“looks like an email”) updates as you type.
+4. Hit **FIND** (or Enter in the paste field). Mode is auto-detected; existing
+   lookup modes still run under the hood via `scripts/lookup.py`.
+5. **Contact card:** name big, title · company, then email / phone / LinkedIn / X
+   with per-row **Copy**, plus one **Copy card**.
+6. **Middle-click** bar clears the last result (and cache) — does **not** auto-fire paid APIs.
 
 ### Controls
 
@@ -116,11 +116,21 @@ required key is present for the selected provider mode.
 |-------|--------|
 | Left-click bar | Toggle panel |
 | Middle-click bar | Clear last result (+ cache); toast "Cleared" |
-| Provider chips | Switch LeadMagic / ZoomInfo / Waterfall |
-| Input tabs | Email · Profile URL · Name + company · Phone |
-| Lookup | Run `scripts/lookup.py` (paid API call) |
-| Copy / Copy all | Clipboard field or full card |
-| Keys empty state | Shown when required key(s) missing — open widget settings |
+| Paste field | One multiline/paste; Enter triggers FIND |
+| FIND | Detect mode → fill inputs → `lookup()` |
+| Copy / Copy card | Clipboard field or full card |
+| Keys one-liner | Shown when required key(s) missing |
+
+### Detect modes
+
+| Hint | Trigger |
+|------|---------|
+| looks like an email | has `@`, no http (and not `Name @ Company` / `at` patterns) |
+| looks like a profile URL | linkedin.com / x.com / twitter.com / http(s) |
+| looks like a phone | mostly digits / `+` `()` `-` |
+| looks like name + company | `Name at domain`, `Name @ Company`, `Name, domain.com` |
+
+Provider waterfall stays the default in schema — no chips in the primary UI.
 
 ### Honest capability notes
 
@@ -128,7 +138,7 @@ required key is present for the selected provider mode.
   still works when a ZoomInfo token is present).
 - **X/Twitter profile URL** is **best-effort**; LinkedIn profile URLs hit more
   reliably on both providers.
-- **Not for blast outbound** — one person at a time, lawful individual follow-up.
+- Individual follow-up only — **not a sequencer**.
 
 ## Controls / flows that work
 
@@ -139,8 +149,7 @@ required key is present for the selected provider mode.
 | Name + company | email-finder (`first_name`/`last_name`/`domain`) then profile | enrich `fullName`+`companyName` | LM then ZI |
 | Phone | honest skip (no clear LM phone→profile in MVP) | enrich `phone` | ZI fills when LM cannot |
 
-Waterfall = LeadMagic first, then ZoomInfo only for still-missing fields
-(email, phone, linkedin/profile, name, title, company).
+Waterfall = LeadMagic first, then ZoomInfo only for still-missing fields.
 
 ## Remove
 
@@ -156,19 +165,17 @@ rm -rf ~/.cache/yellow-pixels
 
 ## Network
 
-- LeadMagic: `https://api.leadmagic.io` (paths under `/v1/people/…`, with
-  root-path fallbacks if a route 404s).
+- LeadMagic: `https://api.leadmagic.io`
 - ZoomInfo GTM: `POST https://api.zoominfo.com/gtm/data/v1/contacts/enrich`
-  with `Accept` / `Content-Type`: `application/vnd.api+json`.
 
-Outbound HTTPS only when you click Lookup. Keys stay in widget settings /
+Outbound HTTPS only when you click FIND. Keys stay in widget settings /
 process env for that one call — never written into the repo or the result cache.
 
 Cache (last **successful** lookup only): `~/.cache/yellow-pixels/last.json`.
 
 ## Scripts
 
-`scripts/lookup.py` — urllib only, no extra deps.
+`scripts/lookup.py` — urllib only, no extra deps. Modes unchanged.
 
 ```sh
 python3 scripts/lookup.py --help
@@ -179,10 +186,10 @@ python3 scripts/lookup.py --provider leadmagic|zoominfo|waterfall \
 ## Layout
 
 ```
-manifest.json          # harris.yellow-pixels @ 0.1.2
+manifest.json          # harris.yellow-pixels @ 0.2.0
 BarWidget.qml          # bar entry + Loader → Panel; middle-click clear
-Panel.qml              # nested panel UI (Keys empty state + honest footer)
-YellowStore.qml        # Process → lookup.py; result model + disk cache
+Panel.qml              # paste + FIND + contact card
+YellowStore.qml        # pasteInput, detectMode, findFromPaste, cache, lookup
 qmldir
 scripts/lookup.py
 docs/preview/index.html
@@ -198,19 +205,16 @@ README.md
 
 - Keys live in widget settings only; injected as process env for a single
   `lookup.py` run. **Never** persisted to `~/.cache/yellow-pixels/` or the repo.
-- Cache stores the last successful result card (and optional input snapshot) —
-  no API keys / bearer tokens.
-- Outbound HTTPS only on explicit Lookup. No auto-fire on panel open or
-  middle-click.
-- MIT at repo root. Unofficial — not affiliated with LeadMagic, ZoomInfo, or
-  GTM.AI.
+- Cache stores the last successful result card — no API keys / bearer tokens.
+- Outbound HTTPS only on explicit FIND. No auto-fire on panel open or middle-click.
+- MIT at repo root. Unofficial — not affiliated with LeadMagic, ZoomInfo, or GTM.AI.
 
 ## Preview
 
 Open `docs/preview/index.html` in a browser for an **interactive** HTML mock
-(v0.1.2): clickable provider chips & input tabs, filled sample result card with
-source tags, Copy buttons, and a demo toggle (result vs keys-missing). Not live
-APIs. Marketplace card: `preview.png` (from `preview.svg`).
+(v0.2.0): paste field + FIND toggles to the Alex-style contact card. No provider
+chips. Banner **v0.2.0 HTML mock**. Marketplace card: `preview.png` (from
+`preview.svg`).
 
 ## License
 

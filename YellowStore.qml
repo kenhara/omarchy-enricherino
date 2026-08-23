@@ -20,6 +20,7 @@ QtObject {
   property string domainInput: ""
   property string companyInput: ""
   property string phoneInput: ""
+  property string pasteInput: ""
 
   property bool loading: false
   property string lastError: ""
@@ -52,13 +53,19 @@ QtObject {
   readonly property bool hasCachedResult: !!(store.lastResult && typeof store.lastResult === "object")
 
   readonly property string keysHint: {
-    var mode = String(store.providerMode || "waterfall")
     if (store.hasAnyKey) return ""
-    if (mode === "leadmagic")
-      return "Keys — add LeadMagic API key in widget settings before Lookup."
-    if (mode === "zoominfo")
-      return "Keys — add ZoomInfo / GTM.AI bearer token in widget settings before Lookup."
-    return "Keys — add LeadMagic and/or ZoomInfo in widget settings before Lookup."
+    return "add keys in widget settings"
+  }
+
+  readonly property string detectedModeLabel: {
+    var raw = String(store.pasteInput || "").trim()
+    if (!raw.length) return ""
+    var m = store.detectMode(raw)
+    if (m === "email") return "looks like an email"
+    if (m === "profile") return "looks like a profile URL"
+    if (m === "phone") return "looks like a phone"
+    if (m === "name_company") return "looks like name + company"
+    return ""
   }
 
   signal dataChanged()
@@ -96,6 +103,115 @@ QtObject {
   function setInputMode(mode) {
     store.inputMode = store.normalizeInputMode(mode)
     store.dataChanged()
+  }
+
+  function detectMode(text) {
+    var t = String(text || "").trim()
+    if (!t.length) return ""
+    var lower = t.toLowerCase()
+
+    // Profile URL / social
+    if (/https?:\/\//i.test(t)
+        || lower.indexOf("linkedin.com") >= 0
+        || lower.indexOf("twitter.com") >= 0
+        || /(?:^|[\s/])x\.com\//i.test(t)
+        || lower.indexOf("x.com/") >= 0)
+      return "profile"
+
+    // Phone: mostly digits / + ( ) -
+    var stripped = t.replace(/[\s\-\(\)\+\.]/g, "")
+    var digitCount = (t.match(/\d/g) || []).length
+    var nonSpace = t.replace(/\s/g, "").length
+    var hasLetters = /[A-Za-z]{2,}/.test(t)
+    if (!hasLetters && nonSpace >= 7 && digitCount >= 7
+        && digitCount / Math.max(1, nonSpace) >= 0.7)
+      return "phone"
+    if (!hasLetters && stripped.length >= 7 && /^\d+$/.test(stripped))
+      return "phone"
+
+    // Name + company patterns (before bare email — "Alex @ Acme" has @)
+    if (/\s+at\s+/i.test(t) || /\s+@\s+/.test(t) || /,\s*[\w.-]+\.\w{2,}/.test(t))
+      return "name_company"
+
+    // Email: has @ and no http
+    if (t.indexOf("@") >= 0 && !/https?:\/\//i.test(t))
+      return "email"
+
+    // "Name something.com" fallback
+    if (/\S+\s+.+/.test(t) && /\.\w{2,}/.test(t))
+      return "name_company"
+
+    return "email"
+  }
+
+  function parseNameCompany(text) {
+    var t = String(text || "").trim()
+    var name = ""
+    var rest = ""
+    var m
+    m = t.match(/^(.+?)\s+at\s+(.+)$/i)
+    if (m) { name = m[1].trim(); rest = m[2].trim() }
+    if (!name.length) {
+      m = t.match(/^(.+?)\s+@\s+(.+)$/)
+      if (m) { name = m[1].trim(); rest = m[2].trim() }
+    }
+    if (!name.length) {
+      m = t.match(/^(.+?),\s*(.+)$/)
+      if (m) { name = m[1].trim(); rest = m[2].trim() }
+    }
+    if (!name.length) {
+      // "Name domain.com" — last token looks like domain
+      m = t.match(/^(.+?)\s+([\w.-]+\.\w{2,})$/)
+      if (m) { name = m[1].trim(); rest = m[2].trim() }
+    }
+    if (!name.length) {
+      name = t
+      rest = ""
+    }
+    var domain = ""
+    var company = ""
+    if (rest.length) {
+      if (rest.indexOf(".") >= 0 && rest.indexOf(" ") < 0)
+        domain = rest
+      else
+        company = rest
+    }
+    return { full_name: name, domain: domain, company: company }
+  }
+
+  function findFromPaste() {
+    var text = String(store.pasteInput || "").trim()
+    if (!text.length) {
+      store.lastError = "Paste something to look up"
+      store.showToast(store.lastError)
+      store.dataChanged()
+      return
+    }
+    var mode = store.detectMode(text)
+    if (!mode) mode = "email"
+    store.inputMode = store.normalizeInputMode(mode)
+
+    // Clear sibling fields so buildInputs stays clean
+    store.emailInput = ""
+    store.profileUrlInput = ""
+    store.fullNameInput = ""
+    store.domainInput = ""
+    store.companyInput = ""
+    store.phoneInput = ""
+
+    if (mode === "email") {
+      store.emailInput = text
+    } else if (mode === "profile") {
+      store.profileUrlInput = text
+    } else if (mode === "phone") {
+      store.phoneInput = text
+    } else if (mode === "name_company") {
+      var parsed = store.parseNameCompany(text)
+      store.fullNameInput = parsed.full_name || ""
+      store.domainInput = parsed.domain || ""
+      store.companyInput = parsed.company || ""
+    }
+    store.lookup()
   }
 
   function formatUpdated(iso) {
@@ -415,6 +531,14 @@ QtObject {
     if (obj.mode) {
       store.setInputMode(obj.mode)
       acted = true
+    }
+    if (obj.paste || obj.pasteInput) {
+      store.pasteInput = String(obj.paste || obj.pasteInput)
+      acted = true
+      if (obj.find === true || obj.find === "true" || obj.lookup === true || obj.lookup === "true" || obj.lookup === 1) {
+        Qt.callLater(function() { store.findFromPaste() })
+        return true
+      }
     }
     if (obj.email) { store.emailInput = String(obj.email); store.inputMode = "email"; acted = true }
     if (obj.profile_url || obj.url) {

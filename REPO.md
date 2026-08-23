@@ -2,8 +2,8 @@
 
 GitHub: `https://github.com/kenhara/omarchy-yellow-pixels`
 
-Individual contact lookup for Omarchy — yellow-pages joke, not a sequencer.
-Unofficial. Not for blast outbound.
+Look somebody up — one paste, FIND, contact card. Yellow-pages / pixel desk
+joke, not a sequencer. Unofficial. Waterfall under the hood.
 
 ```sh
 omarchy plugin add https://github.com/kenhara/omarchy-yellow-pixels.git --enable
