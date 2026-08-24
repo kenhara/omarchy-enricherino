@@ -2,7 +2,6 @@ import QtQuick
 import Quickshell
 import qs.Commons
 import qs.Ui
-import "."
 
 // Nested details panel for Enricherino (loaded by BarWidget — not a separate kind).
 // 0.2.0 — one paste field, FIND, contact card. No provider chips / input tabs.
