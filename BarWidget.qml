@@ -3,11 +3,11 @@ import Quickshell
 import qs.Commons
 import qs.Ui
 
-// Yellow Pixels bar entry — Security Theater / Space Jockey pattern:
+// Enricherino bar entry — Compliantish / Rocketlauncher pattern:
 // BarWidget loads nested Panel.qml via Loader. kinds: ["bar-widget"] only.
 BarWidget {
   id: root
-  moduleName: "harris.yellow-pixels"
+  moduleName: "harris.enricherino"
 
   readonly property bool opened: panelLoader.item
     ? panelLoader.item.opened === true
@@ -138,9 +138,9 @@ BarWidget {
     text: yellowStore.barLabel || "● YP"
     horizontalMargin: 8.5
     tooltipText: {
-      var tip = "Yellow Pixels — look somebody up · middle: clear"
+      var tip = "Enricherino — look somebody up · middle: clear"
       if (yellowStore.loading)
-        tip = "Yellow Pixels — finding… · middle: clear"
+        tip = "Enricherino — finding… · middle: clear"
       return tip
     }
     onPressed: function(buttonCode) {

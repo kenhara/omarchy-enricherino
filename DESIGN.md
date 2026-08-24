@@ -1,8 +1,8 @@
-# Yellow Pixels — design notes
+# Enricherino — design notes
 
-**Status:** 0.2.3 (discoverability)  
-**Id:** `harris.yellow-pixels`  
-**Peers:** Security Theater, Space Jockey, Fair Witness, Daily Bread
+**Status:** 0.2.4 (discoverability)  
+**Id:** `harris.enricherino`  
+**Peers:** Compliantish, Rocketlauncher, Encyclopedic, Scriptural
 
 ## Why
 
@@ -19,14 +19,14 @@ follow-up contact via LeadMagic and/or ZoomInfo GTM under the hood.
 | Schema knobs early | API keys + `providerMode` (advanced only) |
 | Honest empty/error | One-liner keys hint; toast on miss |
 | Ship extras | `preview.png`, Remove / Security baseline / Controls |
-| Cache last success | `~/.cache/yellow-pixels/last.json` (never keys) |
+| Cache last success | `~/.cache/enricherino/last.json` (never keys) |
 | Middle-click useful | Clear last result + toast "Cleared" |
 | MIT + manifest at root | Marketplace layout |
 | Unofficial disclaimer | LeadMagic / ZoomInfo / GTM.AI |
 
 ## Bar
 
-`● YP` — left click toggles panel. Tooltip: *Yellow Pixels — look somebody up ·
+`● YP` — left click toggles panel. Tooltip: *Enricherino — look somebody up ·
 middle: clear*. Middle click clears last result / cache (does **not** auto-lookup).
 Right-click unused.
 

@@ -3,11 +3,11 @@ import Quickshell
 import qs.Commons
 import qs.Ui
 
-// Nested details panel for Yellow Pixels (loaded by BarWidget — not a separate kind).
+// Nested details panel for Enricherino (loaded by BarWidget — not a separate kind).
 // 0.2.0 — one paste field, FIND, contact card. No provider chips / input tabs.
 Panel {
   id: root
-  moduleName: "harris.yellow-pixels"
+  moduleName: "harris.enricherino"
   manageIpc: false
 
   property var anchorItem: null

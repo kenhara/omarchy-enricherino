@@ -1,6 +1,6 @@
-# Yellow Pixels — pre-ship checklist (0.2.3)
+# Enricherino — pre-ship checklist (0.2.4)
 
-## PRE-SHIP note — discoverability (0.2.3)
+## PRE-SHIP note — discoverability (0.2.4)
 
 Patch bump for marketplace discoverability before UTM smoke: expanded `keywords` + `barWidget.aliases` (LeadMagic/ZoomInfo/Apollo/Clearbit/Hunter…); README Discoverability; suggest missing tag `crm` or `enrichment`. Category stays **Productivity**. No QML/lookup change.
 
@@ -20,13 +20,13 @@ phone as enrich / `ok`) and waterfall **`entered`** labels for typed-only phone.
 | 5 | Secrets via `Process.environment` (not `env KEY=` argv) | OK (0.2.1) |
 | 6 | No `/workspace/` in public README/DESIGN | Fixed — DESIGN scrubbed |
 | 7 | LICENSE second `Software` unquoted | Fixed |
-| 8 | README hero `![Yellow Pixels](preview.png)`; Install+Remove; no WIP | Fixed hero |
+| 8 | README hero `![Enricherino](preview.png)`; Install+Remove; no WIP | Fixed hero |
 | 9 | FileView `setText` cache (no mkdir + `Qt.callLater` race) | OK (0.2.1) |
 | 10 | Dead `dataChanged` deleted | OK (0.2.1) |
 | 11 | Honest copy toasts | OK + exit-127 toast |
 | 12 | `Text.PlainText` | **N/A** — no remote HTML; contact fields are JSON strings |
 | 13 | Hover on actionable; Flickable | Fixed hover on FIND / Copy / Copy card; Flickable already |
-| 14 | Version sync manifest / README / DESIGN / preview / UA | **0.2.3**; UA from `manifest.json` |
+| 14 | Version sync manifest / README / DESIGN / preview / UA | **0.2.4**; UA from `manifest.json` |
 | 15 | Integer schema `min`/`max`/`step` | **N/A** — string + enum only |
 | 16 | No invented `handleSummonPayload` | Fixed — removed; middle-click → `clearLastResult` |
 | 17 | Controls L/R/M; witty pitch ≤15 words; no curl\|sh | Fixed Controls + pitch; baseline clean |
@@ -36,7 +36,7 @@ phone as enrich / `ok`) and waterfall **`entered`** labels for typed-only phone.
 - LeadMagic phone mode: warning only — **no** input echo into `result.phone`.
 - Waterfall: typed phone surfaces as `sources.phone = "entered"` only after ZI
   if still empty; `ok` requires a real provider source.
-- API keys never written to `~/.cache/yellow-pixels/`.
+- API keys never written to `~/.cache/enricherino/`.
 
 ## Changed in 0.2.2
 

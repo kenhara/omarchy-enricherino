@@ -1,18 +1,18 @@
-# Yellow Pixels
+# Enricherino
 
-![Yellow Pixels](preview.png)
+![Enricherino](preview.png)
 
 Paste one thing. Hit FIND. Get a contact card.
 
 Individual contact lookup for Omarchy — **yellow-pages / pixel desk joke, not a sequencer.**
 Delight in ≤10 seconds. Waterfall under the hood. Unofficial.
 
-**ID:** `harris.yellow-pixels`  
+**ID:** `harris.enricherino`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.2.3
+**Version:** 0.2.4
 
-### 0.2.3
+### 0.2.4
 - Discoverability: expanded `keywords` + `barWidget.aliases` (LeadMagic/ZoomInfo/Apollo/etc.); honest search note.
 
 ### 0.2.2
@@ -52,12 +52,12 @@ Delight in ≤10 seconds. Waterfall under the hood. Unofficial.
 
 ## Repository
 
-**GitHub:** https://github.com/kenhara/omarchy-yellow-pixels  
-Local folder: **`omarchy-yellow-pixels`**.
+**GitHub:** https://github.com/kenhara/omarchy-enricherino  
+Local folder: **`omarchy-enricherino`**.
 
 ## Unofficial disclaimer
 
-**Yellow Pixels is unofficial.** It is **not** affiliated with, endorsed by, or
+**Enricherino is unofficial.** It is **not** affiliated with, endorsed by, or
 sponsored by LeadMagic, ZoomInfo, GTM.AI, or any related entity. It is a thin
 personal client that calls public/documented HTTP APIs with **your** keys.
 Use only for lawful individual follow-up. **Not a sequencer.**
@@ -70,15 +70,15 @@ tag: `crm` or `enrichment`).
 Top-level `keywords` in `manifest.json` may help marketplace/search (LeadMagic,
 ZoomInfo, GTM.AI, LinkedIn, Apollo, Clearbit, Hunter, etc.).
 `barWidget.aliases` are for discovery docs and human search — the bar loader
-may not index them. Display name stays **Yellow Pixels** (brand-free).
+may not index them. Display name stays **Enricherino** (brand-free).
 
 ## Install
 
 ### From GitHub
 
 ```sh
-omarchy plugin add https://github.com/kenhara/omarchy-yellow-pixels.git --enable
-omarchy bar move harris.yellow-pixels --section right
+omarchy plugin add https://github.com/kenhara/omarchy-enricherino.git --enable
+omarchy bar move harris.enricherino --section right
 ```
 
 ### Local copy (this tree)
@@ -88,12 +88,12 @@ machine:
 
 ```sh
 mkdir -p ~/.config/omarchy/plugins
-cp -a . ~/.config/omarchy/plugins/harris.yellow-pixels
+cp -a . ~/.config/omarchy/plugins/harris.enricherino
 
-omarchy plugin validate ~/.config/omarchy/plugins/harris.yellow-pixels
+omarchy plugin validate ~/.config/omarchy/plugins/harris.enricherino
 omarchy-shell shell rescanPlugins
 
-omarchy bar move harris.yellow-pixels --section right
+omarchy bar move harris.enricherino --section right
 ```
 
 Hot reload applies on save under `~/.config/omarchy/plugins/`.
@@ -102,13 +102,13 @@ Hot reload applies on save under `~/.config/omarchy/plugins/`.
 
 ```sh
 mkdir -p ~/.config/omarchy/plugins
-ln -sfn /path/to/omarchy-yellow-pixels ~/.config/omarchy/plugins/harris.yellow-pixels
+ln -sfn /path/to/omarchy-enricherino ~/.config/omarchy/plugins/harris.enricherino
 omarchy-shell shell rescanPlugins
 ```
 
 ## Configure keys
 
-Open **widget settings** for Yellow Pixels (Omarchy bar / plugin settings).
+Open **widget settings** for Enricherino (Omarchy bar / plugin settings).
 Advanced / schema only — not in the primary panel UI:
 
 | Schema key | Label | Env passed to script |
@@ -120,7 +120,7 @@ Advanced / schema only — not in the primary panel UI:
 **Do not commit real keys.** Defaults are empty strings. Schema keys live in
 shell settings **plaintext**. At lookup time they are passed via
 `Process.environment` (not argv) for that one call only — **never** written to
-`~/.cache/yellow-pixels/`.
+`~/.cache/enricherino/`.
 
 Without keys, the panel shows a compact one-liner: **add keys in widget settings**.
 
@@ -190,13 +190,13 @@ Waterfall = LeadMagic first, then ZoomInfo only for still-missing fields.
 ## Remove
 
 ```sh
-omarchy plugin remove harris.yellow-pixels
+omarchy plugin remove harris.enricherino
 ```
 
 Optional cache cleanup:
 
 ```sh
-rm -rf ~/.cache/yellow-pixels
+rm -rf ~/.cache/enricherino
 ```
 
 ## Network
@@ -206,9 +206,9 @@ rm -rf ~/.cache/yellow-pixels
 
 Outbound HTTPS only when you click FIND. Keys stay in widget settings /
 process env for that one call — never written into the repo or the result cache.
-User-Agent: `YellowPixels/<manifest version> (Omarchy unofficial; harris.yellow-pixels)`.
+User-Agent: `Enricherino/<manifest version> (Omarchy unofficial; harris.enricherino)`.
 
-Cache (last **successful** lookup only): `~/.cache/yellow-pixels/last.json`.
+Cache (last **successful** lookup only): `~/.cache/enricherino/last.json`.
 
 ## Scripts
 
@@ -223,7 +223,7 @@ python3 scripts/lookup.py --provider leadmagic|zoominfo|waterfall \
 ## Layout
 
 ```
-manifest.json          # harris.yellow-pixels @ 0.2.2
+manifest.json          # harris.enricherino @ 0.2.2
 BarWidget.qml          # bar entry + Loader → Panel; middle-click clear
 Panel.qml              # paste + FIND + contact card
 YellowStore.qml        # pasteInput, detectMode, findFromPaste, cache, lookup
@@ -243,7 +243,7 @@ README.md
 
 - Keys live in **Omarchy shell / widget settings as plaintext** (schema strings).
   Injected via `Process.environment` for a single `lookup.py` run — **not** in
-  argv. **Never** persisted to `~/.cache/yellow-pixels/` or the repo.
+  argv. **Never** persisted to `~/.cache/enricherino/` or the repo.
 - Cache stores the last successful result card — no API keys / bearer tokens.
 - Outbound HTTPS only on explicit FIND. No auto-fire on panel open or middle-click.
 - MIT at repo root. Unofficial — not affiliated with LeadMagic, ZoomInfo, or GTM.AI.
@@ -251,8 +251,8 @@ README.md
 ## Preview
 
 Open `docs/preview/index.html` in a browser for an **interactive** HTML mock
-(v0.2.3): paste field + FIND toggles to the Alex-style contact card. No provider
-chips. Banner **v0.2.3 HTML mock**. Marketplace card: `preview.png` (from
+(v0.2.4): paste field + FIND toggles to the Alex-style contact card. No provider
+chips. Banner **v0.2.4 HTML mock**. Marketplace card: `preview.png` (from
 `preview.svg`).
 
 ## License

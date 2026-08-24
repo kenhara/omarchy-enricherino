@@ -1,4 +1,4 @@
-# Yellow Pixels — audit notes (0.2.1)
+# Enricherino — audit notes (0.2.1)
 
 Mapping of audit findings → fixes shipped in **0.2.1**.
 

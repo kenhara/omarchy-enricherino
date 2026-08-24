@@ -2,9 +2,9 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Yellow Pixels — runs scripts/lookup.py via Process; parses JSON stdout.
+// Enricherino — runs scripts/lookup.py via Process; parses JSON stdout.
 // Individual follow-up only. Not a sequencer.
-// Caches last successful result to ~/.cache/yellow-pixels/last.json (never API keys).
+// Caches last successful result to ~/.cache/enricherino/last.json (never API keys).
 QtObject {
   id: store
 
@@ -28,7 +28,7 @@ QtObject {
   property string lookupBuf: ""
   property string lookedUpAt: ""
 
-  readonly property string cacheDir: Quickshell.env("HOME") + "/.cache/yellow-pixels"
+  readonly property string cacheDir: Quickshell.env("HOME") + "/.cache/enricherino"
   readonly property string cachePath: cacheDir + "/last.json"
   readonly property string pluginDir: String(Qt.resolvedUrl("."))
     .replace(/^file:\/\//, "")

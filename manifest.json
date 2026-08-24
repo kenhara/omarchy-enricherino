@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "id": "harris.yellow-pixels",
-  "name": "Yellow Pixels",
-  "version": "0.2.3",
+  "id": "harris.enricherino",
+  "name": "Enricherino",
+  "version": "0.2.4",
   "author": "Harris Kenny",
   "license": "MIT",
   "description": "Paste one thing. Hit FIND. Get a contact card. Unofficial LeadMagic / ZoomInfo / GTM.AI waterfall enrichment; not affiliated.",
@@ -13,7 +13,7 @@
     "barWidget": "BarWidget.qml"
   },
   "keywords": [
-    "yellow pixels",
+    "enricherino",
     "yellow pages",
     "contact lookup",
     "people search",
@@ -41,16 +41,17 @@
     "clearbit",
     "hunter.io",
     "rocketreach",
-    "people"
+    "people",
+    "yellow pixels"
   ],
   "barWidget": {
-    "displayName": "Yellow Pixels",
+    "displayName": "Enricherino",
     "description": "Paste email / LinkedIn / X / phone / Name at company — FIND — contact card. Waterfall under the hood (LeadMagic / ZoomInfo). Unofficial; not a sequencer.",
     "category": "Productivity",
     "allowMultiple": false,
     "defaultSection": "right",
     "aliases": [
-      "yellow pixels",
+      "enricherino",
       "yellow pages",
       "yp",
       "contact lookup",
@@ -70,7 +71,8 @@
       "apollo",
       "clearbit",
       "hunter.io",
-      "rocketreach"
+      "rocketreach",
+      "yellow pixels"
     ],
     "defaults": {
       "leadmagicApiKey": "",

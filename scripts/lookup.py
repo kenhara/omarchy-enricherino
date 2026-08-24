@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Yellow Pixels — individual contact lookup (LeadMagic + ZoomInfo GTM).
+"""Enricherino — individual contact lookup (LeadMagic + ZoomInfo GTM).
 
 CLI for Omarchy bar-widget. Reads keys from env:
   LEADMAGIC_API_KEY
@@ -23,7 +23,7 @@ from urllib.parse import urlparse
 
 LEADMAGIC_BASE = "https://api.leadmagic.io"
 ZOOMINFO_ENRICH = "https://api.zoominfo.com/gtm/data/v1/contacts/enrich"
-PLUGIN_ID = "harris.yellow-pixels"
+PLUGIN_ID = "harris.enricherino"
 
 
 def read_manifest_version() -> str:
@@ -35,11 +35,11 @@ def read_manifest_version() -> str:
             return ver
     except Exception:
         pass
-    return "0.2.3"
+    return "0.2.4"
 
 
 VERSION = read_manifest_version()
-USER_AGENT = f"YellowPixels/{VERSION} (Omarchy unofficial; {PLUGIN_ID})"
+USER_AGENT = f"Enricherino/{VERSION} (Omarchy unofficial; {PLUGIN_ID})"
 
 # Prefer /v1/people/…; fall back to root paths on 404 (legacy OpenAPI).
 LM_PATHS = {
@@ -794,7 +794,7 @@ def run(provider: str, mode: str, inputs: dict[str, Any]) -> dict[str, Any]:
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(
         prog="lookup.py",
-        description="Yellow Pixels individual contact lookup (LeadMagic / ZoomInfo / waterfall)",
+        description="Enricherino individual contact lookup (LeadMagic / ZoomInfo / waterfall)",
     )
     p.add_argument(
         "--provider",
