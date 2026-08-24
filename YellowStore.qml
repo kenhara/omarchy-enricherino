@@ -35,8 +35,8 @@ Item {
     .replace(/\/$/, "")
   readonly property string lookupPath: pluginDir + "/scripts/lookup.py"
 
-  readonly property string barGlyph: "●"
-  readonly property string barLabel: store.barGlyph + " ER"
+  readonly property string barGlyph: "🔍"
+  readonly property string barLabel: store.barGlyph
   readonly property string lastUpdatedText: formatUpdated(store.lookedUpAt)
 
   readonly property bool hasLeadmagicKey: String(store.leadmagicApiKey || "").trim().length > 0

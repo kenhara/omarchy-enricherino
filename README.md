@@ -10,7 +10,10 @@ Delight in ≤10 seconds. Waterfall under the hood. Unofficial.
 **ID:** `kenhara.enricherino`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.2.5
+**Version:** 0.2.8
+
+### 0.2.8
+- Bar chip emoji 🔍 (glyph-only); Panel `import "."` so Loader resolves sibling types; best-effort panel load error in tooltip.
 
 ### 0.2.5
 - Renamed plugin id `harris.enricherino` → `kenhara.enricherino` (install path `~/.config/omarchy/plugins/kenhara.enricherino`). Display name unchanged.
