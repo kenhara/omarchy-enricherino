@@ -38,6 +38,8 @@ Item {
     .replace(/\/$/, "")
   readonly property string lookupPath: pluginDir + "/scripts/lookup.py"
   readonly property string saveCredPath: pluginDir + "/scripts/save_credentials.py"
+  readonly property int maxLookupBytes: 1048576
+  readonly property int maxFileBytes: 1048576
 
   // Pending JSON for save_credentials.py stdin (one-shot; not mirrored to settings).
   property string _pendingCredJson: ""
@@ -160,6 +162,10 @@ Item {
   }
 
   function onCredentialsLoaded(text) {
+    if (text && String(text).length > store.maxFileBytes) {
+      store.credentialsLoaded = true
+      return
+    }
     if (text && String(text).length > 2)
       store.applyCredentialsFile(text)
     store.credentialsLoaded = true
@@ -448,6 +454,7 @@ Item {
       "PYTHONDONTWRITEBYTECODE": "1"
     })
     lookupProc.running = true
+    lookupWatchdog.restart()
   }
 
   function stripSecrets(obj) {
@@ -522,11 +529,13 @@ Item {
   }
 
   function onLookupFinished(exitCode) {
+    lookupWatchdog.stop()
     store.loading = false
     var raw = store.lookupBuf || ""
     store.lookupBuf = ""
     if (!raw.length) {
-      store.lastError = "lookup produced no output (exit " + exitCode + ")"
+      if (!store.lastError)
+        store.lastError = "lookup produced no output (exit " + exitCode + ")"
       return
     }
     // Prefer last non-empty JSON line
@@ -587,6 +596,8 @@ Item {
   }
 
   function onCacheLoaded(text) {
+    if (text && text.length > store.maxFileBytes)
+      return
     if (text && text.length > 2)
       store.loadDiskText(text)
   }
@@ -600,6 +611,21 @@ Item {
     interval: 1800
     repeat: false
     onTriggered: store.toastText = ""
+  }
+
+  Timer {
+    id: lookupWatchdog
+    interval: 60000
+    repeat: false
+    onTriggered: {
+      if (lookupProc.running) {
+        lookupProc.running = false
+        store.lookupBuf = ""
+        store.loading = false
+        store.lastError = "lookup timed out"
+        store.showToast(store.lastError)
+      }
+    }
   }
 
   FileView {
@@ -640,6 +666,8 @@ Item {
     stderr: SplitParser {
       onRead: function(line) {
         var s = String(line || "")
+        if (s.length > 2048)
+          s = s.substring(0, 2048)
         if (s.length)
           store.showToast("Keys save failed")
       }
@@ -684,11 +712,21 @@ Item {
     id: lookupProc
     running: false
     stdout: SplitParser {
-      onRead: function(line) { store.lookupBuf += line + "\n" }
+      onRead: function(line) {
+        if (store.lookupBuf.length + line.length + 1 > store.maxLookupBytes) {
+          store.lookupBuf = ""
+          store.lastError = "lookup output too large — aborted"
+          lookupProc.running = false
+          return
+        }
+        store.lookupBuf += line + "\n"
+      }
     }
     stderr: SplitParser {
       onRead: function(line) {
         var s = String(line || "")
+        if (s.length > 2048)
+          s = s.substring(0, 2048)
         if (s.length)
           store.lastError = s
       }

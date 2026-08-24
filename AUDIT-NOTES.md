@@ -39,3 +39,10 @@ LEADMAGIC_API_KEY=fake python3 scripts/lookup.py --provider leadmagic --mode pho
 # expect ok:false and result.phone null (not echoed)
 bash -n scripts/lookup.py  # N/A for py; python3 -m py_compile scripts/lookup.py
 ```
+
+## 0.3.6 (marketplace #2222)
+
+| ID | Finding | Fix |
+|----|---------|-----|
+| 2222 | Unbounded `resp.read()` / `HTTPError.read()`, `lookupBuf` accumulation, wholesale FileView of cache/credentials | Cap HTTP (4 MiB), file (1 MiB), stdin (64 KiB), QML lookup/file buffers (1 MiB); clamp helper stderr to 2048; 60s lookup watchdog. Oversize/absent → existing fallbacks. |
+

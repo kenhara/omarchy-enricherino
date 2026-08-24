@@ -30,12 +30,28 @@ PLUGIN_ID = "kenhara.enricherino"
 TOKEN_CACHE_PATH = Path.home() / ".cache" / "enricherino" / "zi_token.json"
 CREDENTIALS_PATH = Path.home() / ".config" / "enricherino" / "credentials.json"
 TOKEN_SKEW_SEC = 60
+MAX_HTTP_BYTES = 4 * 1024 * 1024   # 4 MiB
+MAX_FILE_BYTES = 1 * 1024 * 1024   # 1 MiB
+
+
+def read_text_capped(path: Path, limit: int = MAX_FILE_BYTES) -> str | None:
+    try:
+        with path.open("rb") as f:
+            data = f.read(limit + 1)
+        if len(data) > limit:
+            return None
+        return data.decode("utf-8", errors="replace")
+    except Exception:
+        return None
 
 
 def read_manifest_version() -> str:
     try:
         manifest = Path(__file__).resolve().parent.parent / "manifest.json"
-        data = json.loads(manifest.read_text(encoding="utf-8"))
+        raw = read_text_capped(manifest)
+        if raw is None:
+            return "0.3.3"
+        data = json.loads(raw)
         ver = str(data.get("version") or "").strip()
         if ver:
             return ver
@@ -132,14 +148,20 @@ def http_request(
     req = urllib.request.Request(url, data=body, headers=hdrs, method=method)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
-            raw = resp.read().decode("utf-8", errors="replace")
+            raw_bytes = resp.read(MAX_HTTP_BYTES + 1)
+            if len(raw_bytes) > MAX_HTTP_BYTES:
+                return 0, {"error": "response too large"}, "response too large"
+            raw = raw_bytes.decode("utf-8", errors="replace")
             code = getattr(resp, "status", 200) or 200
             try:
                 return code, json.loads(raw) if raw else {}, raw
             except json.JSONDecodeError:
                 return code, {"_raw": raw}, raw
     except urllib.error.HTTPError as e:
-        raw = e.read().decode("utf-8", errors="replace") if e.fp else ""
+        raw_bytes = e.read(MAX_HTTP_BYTES + 1) if e.fp else b""
+        if len(raw_bytes) > MAX_HTTP_BYTES:
+            return int(e.code), {"error": "error response too large"}, "error response too large"
+        raw = raw_bytes.decode("utf-8", errors="replace")
         try:
             parsed = json.loads(raw) if raw else {"error": str(e.reason)}
         except json.JSONDecodeError:
@@ -308,7 +330,10 @@ def load_cached_token() -> str | None:
     try:
         if not TOKEN_CACHE_PATH.is_file():
             return None
-        data = json.loads(TOKEN_CACHE_PATH.read_text(encoding="utf-8"))
+        raw = read_text_capped(TOKEN_CACHE_PATH)
+        if raw is None:
+            return None
+        data = json.loads(raw)
         token = str(data.get("access_token") or "").strip()
         expires_at = float(data.get("expires_at") or 0)
         if not token or expires_at <= time.time():
@@ -597,7 +622,10 @@ def load_file_credentials() -> tuple[str, str]:
     try:
         if not CREDENTIALS_PATH.is_file():
             return "", ""
-        data = json.loads(CREDENTIALS_PATH.read_text(encoding="utf-8"))
+        raw = read_text_capped(CREDENTIALS_PATH)
+        if raw is None:
+            return "", ""
+        data = json.loads(raw)
         if not isinstance(data, dict):
             return "", ""
         cid = str(

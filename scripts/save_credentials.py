@@ -16,10 +16,13 @@ from pathlib import Path
 
 CRED_DIR = Path.home() / ".config" / "enricherino"
 CRED_PATH = CRED_DIR / "credentials.json"
+MAX_STDIN_BYTES = 64 * 1024
 
 
 def load_from_stdin() -> dict | None:
-    raw = sys.stdin.read()
+    raw = sys.stdin.read(MAX_STDIN_BYTES + 1)
+    if len(raw) > MAX_STDIN_BYTES:
+        raise ValueError("stdin too large")
     if not raw or not raw.strip():
         return None
     data = json.loads(raw)

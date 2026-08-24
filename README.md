@@ -10,7 +10,10 @@ Delight in ≤10 seconds. ZoomInfo under the hood. Unofficial.
 **ID:** `kenhara.enricherino`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.3.5
+**Version:** 0.3.6
+
+### 0.3.6
+- Bound HTTP/file/stdin/QML reads (marketplace #2222).
 
 ### 0.3.5
 - Marketplace preview.png is the live Omarchy smoke screenshot.
@@ -315,7 +318,7 @@ EOF
 ## Layout
 
 ```
-manifest.json          # kenhara.enricherino @ 0.3.5
+manifest.json          # kenhara.enricherino @ 0.3.6
 BarWidget.qml          # bar entry + Loader → Panel; middle-click clear
 Panel.qml              # header Keys lock + paste + FIND + contact card
 YellowStore.qml        # pasteInput, detectMode, findFromPaste, cache, lookup, credentials
