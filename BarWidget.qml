@@ -22,36 +22,24 @@ BarWidget {
   // Warm yellow accent for the joke yellow-pages vibe (falls back if theme lacks it)
   readonly property color ypAccent: Qt.rgba(1.0, 0.86, 0.28, 1.0)
 
-  property string leadmagicApiKey: {
+  property string zoominfoClientId: {
     try {
-      if (root.settings && root.settings.leadmagicApiKey !== undefined)
-        return String(root.settings.leadmagicApiKey)
+      if (root.settings && root.settings.zoominfoClientId !== undefined)
+        return String(root.settings.zoominfoClientId)
       if (typeof root.setting === "function")
-        return String(root.setting("leadmagicApiKey", ""))
+        return String(root.setting("zoominfoClientId", ""))
     } catch (e) {}
     return ""
   }
 
-  property string zoominfoBearerToken: {
+  property string zoominfoClientSecret: {
     try {
-      if (root.settings && root.settings.zoominfoBearerToken !== undefined)
-        return String(root.settings.zoominfoBearerToken)
+      if (root.settings && root.settings.zoominfoClientSecret !== undefined)
+        return String(root.settings.zoominfoClientSecret)
       if (typeof root.setting === "function")
-        return String(root.setting("zoominfoBearerToken", ""))
+        return String(root.setting("zoominfoClientSecret", ""))
     } catch (e) {}
     return ""
-  }
-
-  property string providerMode: {
-    try {
-      var p = "waterfall"
-      if (root.settings && root.settings.providerMode !== undefined)
-        p = root.settings.providerMode
-      else if (typeof root.setting === "function")
-        p = root.setting("providerMode", "waterfall")
-      return yellowStore.normalizeProvider(p)
-    } catch (e) {}
-    return "waterfall"
   }
 
   implicitWidth: button.implicitWidth
@@ -97,14 +85,9 @@ BarWidget {
 
   function syncStoreSettings() {
     yellowStore.applySettings({
-      leadmagicApiKey: root.leadmagicApiKey,
-      zoominfoBearerToken: root.zoominfoBearerToken,
-      providerMode: root.providerMode
+      zoominfoClientId: root.zoominfoClientId,
+      zoominfoClientSecret: root.zoominfoClientSecret
     })
-  }
-
-  function mirrorProviderMode(mode) {
-    root.mirrorSettingsKey("providerMode", yellowStore.normalizeProvider(mode))
   }
 
   // Best-effort write-back into mutable settings (Compliantish mirrorSettingsEnable).
@@ -121,9 +104,8 @@ BarWidget {
     injectPanel()
     syncStoreSettings()
   }
-  onLeadmagicApiKeyChanged: syncStoreSettings()
-  onZoominfoBearerTokenChanged: syncStoreSettings()
-  onProviderModeChanged: syncStoreSettings()
+  onZoominfoClientIdChanged: syncStoreSettings()
+  onZoominfoClientSecretChanged: syncStoreSettings()
 
   YellowStore {
     id: yellowStore

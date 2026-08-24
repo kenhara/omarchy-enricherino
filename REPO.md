@@ -3,7 +3,7 @@
 GitHub: `https://github.com/kenhara/omarchy-enricherino`
 
 Paste one thing. Hit FIND. Get a contact card. Yellow-pages / pixel desk joke,
-not a sequencer. Unofficial. Waterfall under the hood.
+not a sequencer. Unofficial. ZoomInfo under the hood.
 
 ```sh
 omarchy plugin add https://github.com/kenhara/omarchy-enricherino.git --enable

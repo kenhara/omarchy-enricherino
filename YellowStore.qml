@@ -4,13 +4,12 @@ import Quickshell.Io
 
 // Enricherino — runs scripts/lookup.py via Process; parses JSON stdout.
 // Individual follow-up only. Not a sequencer.
-// Caches last successful result to ~/.cache/enricherino/last.json (never API keys).
+// Caches last successful result to ~/.cache/enricherino/last.json (never secrets).
 Item {
   id: store
 
-  property string leadmagicApiKey: ""
-  property string zoominfoBearerToken: ""
-  property string providerMode: "waterfall"   // leadmagic | zoominfo | waterfall
+  property string zoominfoClientId: ""
+  property string zoominfoClientSecret: ""
 
   property string inputMode: "email"   // email | profile | name_company | phone
   property string emailInput: ""
@@ -24,7 +23,7 @@ Item {
   property bool loading: false
   property string lastError: ""
   property string toastText: ""
-  property var lastResult: null   // full JSON from lookup.py (no keys)
+  property var lastResult: null   // full JSON from lookup.py (no secrets)
   property string lookupBuf: ""
   property string lookedUpAt: ""
 
@@ -40,18 +39,14 @@ Item {
   readonly property string barLabel: store.barGlyph
   readonly property string lastUpdatedText: formatUpdated(store.lookedUpAt)
 
-  readonly property bool hasLeadmagicKey: String(store.leadmagicApiKey || "").trim().length > 0
-  readonly property bool hasZoominfoToken: String(store.zoominfoBearerToken || "").trim().length > 0
   readonly property bool hasAnyKey: {
-    var mode = String(store.providerMode || "waterfall")
-    if (mode === "leadmagic") return store.hasLeadmagicKey
-    if (mode === "zoominfo") return store.hasZoominfoToken
-    return store.hasLeadmagicKey || store.hasZoominfoToken
+    return String(store.zoominfoClientId || "").trim().length > 0
+      && String(store.zoominfoClientSecret || "").trim().length > 0
   }
 
   readonly property string keysHint: {
     if (store.hasAnyKey) return ""
-    return "add a key under Keys below"
+    return "add ZoomInfo Client ID + Secret under Keys"
   }
 
   readonly property string detectedModeLabel: {
@@ -65,12 +60,6 @@ Item {
     return ""
   }
 
-  function normalizeProvider(p) {
-    var s = String(p || "waterfall").toLowerCase()
-    if (s === "leadmagic" || s === "zoominfo" || s === "waterfall") return s
-    return "waterfall"
-  }
-
   function normalizeInputMode(m) {
     var s = String(m || "email").toLowerCase()
     if (s === "email" || s === "profile" || s === "name_company" || s === "phone") return s
@@ -81,16 +70,10 @@ Item {
 
   function applySettings(opts) {
     opts = opts || {}
-    if (opts.leadmagicApiKey !== undefined)
-      store.leadmagicApiKey = String(opts.leadmagicApiKey || "")
-    if (opts.zoominfoBearerToken !== undefined)
-      store.zoominfoBearerToken = String(opts.zoominfoBearerToken || "")
-    if (opts.providerMode !== undefined)
-      store.providerMode = store.normalizeProvider(opts.providerMode)
-  }
-
-  function setProviderMode(mode) {
-    store.providerMode = store.normalizeProvider(mode)
+    if (opts.zoominfoClientId !== undefined)
+      store.zoominfoClientId = String(opts.zoominfoClientId || "")
+    if (opts.zoominfoClientSecret !== undefined)
+      store.zoominfoClientSecret = String(opts.zoominfoClientSecret || "")
   }
 
   function setInputMode(mode) {
@@ -330,45 +313,50 @@ Item {
       return
     }
     if (!store.hasAnyKey) {
-      store.lastError = store.keysHint || "add a key under Keys below"
+      store.lastError = store.keysHint || "add ZoomInfo Client ID + Secret under Keys"
       store.showToast(store.lastError)
       return
     }
     store.loading = true
     store.lastError = ""
     store.lookupBuf = ""
-    var provider = store.normalizeProvider(store.providerMode)
     var mode = store.normalizeInputMode(store.inputMode)
     var jsonBlob = JSON.stringify(store.buildInputs())
-    var lm = String(store.leadmagicApiKey || "")
-    var zi = String(store.zoominfoBearerToken || "")
-    // Keys via Process.environment only — never in argv, never written to cache/disk.
+    var cid = String(store.zoominfoClientId || "")
+    var csec = String(store.zoominfoClientSecret || "")
+    // Secrets via Process.environment only — never in argv, never written to result cache.
     // clearEnvironment defaults false (inherit rest of env).
     lookupProc.command = [
       "python3",
       "-B",
       store.lookupPath,
-      "--provider", provider,
       "--mode", mode,
       "--json", jsonBlob
     ]
     lookupProc.environment = ({
-      "LEADMAGIC_API_KEY": lm,
-      "ZOOMINFO_BEARER_TOKEN": zi,
+      "ZOOMINFO_CLIENT_ID": cid,
+      "ZOOMINFO_CLIENT_SECRET": csec,
       "PYTHONDONTWRITEBYTECODE": "1"
     })
     lookupProc.running = true
   }
 
   function stripSecrets(obj) {
-    // Defensive: never persist anything that looks like a key/token.
+    // Defensive: never persist anything that looks like a secret/token.
     if (!obj || typeof obj !== "object") return obj
     var out = ({})
     var skip = {
-      leadmagicApiKey: true,
+      zoominfoClientId: true,
+      zoominfoClientSecret: true,
       zoominfoBearerToken: true,
+      leadmagicApiKey: true,
       apiKey: true,
       api_key: true,
+      client_id: true,
+      client_secret: true,
+      clientId: true,
+      clientSecret: true,
+      access_token: true,
       token: true,
       bearer: true,
       authorization: true
@@ -389,9 +377,8 @@ Item {
     return {
       version: 1,
       lookedUpAt: atIso || store.lookedUpAt || "",
-      providerMode: store.normalizeProvider(store.providerMode),
       inputMode: store.normalizeInputMode(store.inputMode),
-      // Snapshot of inputs used (no keys). Helps restore context; optional.
+      // Snapshot of inputs used (no secrets). Helps restore context; optional.
       inputs: store.buildInputs(),
       result: store.stripSecrets(resultObj || store.lastResult || ({}))
     }
@@ -456,7 +443,7 @@ Item {
         store.lastError = ""
       if (obj.ok) {
         store.showToast("Lookup done")
-        // Cache successful results only — never API keys.
+        // Cache successful results only — never secrets.
         store.persistToDisk(store.buildCacheObject(obj, store.lookedUpAt))
       } else if (store.lastError) {
         store.showToast(store.lastError)

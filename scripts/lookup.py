@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Enricherino — individual contact lookup (LeadMagic + ZoomInfo GTM).
+"""Enricherino — individual contact lookup via ZoomInfo GTM.
 
-CLI for Omarchy bar-widget. Reads keys from env:
-  LEADMAGIC_API_KEY
-  ZOOMINFO_BEARER_TOKEN
+CLI for Omarchy bar-widget. Reads credentials from env:
+  ZOOMINFO_CLIENT_ID
+  ZOOMINFO_CLIENT_SECRET
 
-User-Agent version is read from manifest.json.
+Mints a Bearer via client_credentials (cached under ~/.cache/enricherino/zi_token.json).
+Never stores access_token in schema. User-Agent version from manifest.json.
 Not for blast outbound. Unofficial client.
 """
 from __future__ import annotations
@@ -15,15 +16,19 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-LEADMAGIC_BASE = "https://api.leadmagic.io"
+ZOOMINFO_TOKEN = "https://api.zoominfo.com/gtm/oauth/v1/token"
 ZOOMINFO_ENRICH = "https://api.zoominfo.com/gtm/data/v1/contacts/enrich"
 PLUGIN_ID = "kenhara.enricherino"
+TOKEN_CACHE_PATH = Path.home() / ".cache" / "enricherino" / "zi_token.json"
+TOKEN_SKEW_SEC = 60
 
 
 def read_manifest_version() -> str:
@@ -35,29 +40,11 @@ def read_manifest_version() -> str:
             return ver
     except Exception:
         pass
-    return "0.2.5"
+    return "0.3.0"
 
 
 VERSION = read_manifest_version()
 USER_AGENT = f"Enricherino/{VERSION} (Omarchy unofficial; {PLUGIN_ID})"
-
-# Prefer /v1/people/…; fall back to root paths on 404 (legacy OpenAPI).
-LM_PATHS = {
-    "b2b_profile": ["/v1/people/b2b-profile", "/b2b-profile"],
-    "b2b_profile_email": [
-        "/v1/people/b2b-profile-email",
-        "/v1/people/b2b-social-email",
-        "/b2b-profile-email",
-        "/b2b-social-email",
-    ],
-    "profile_search": ["/v1/people/profile-search", "/profile-search"],
-    "email_finder": ["/v1/people/email-finder", "/email-finder"],
-    "mobile_finder": ["/v1/people/mobile-finder", "/mobile-finder"],
-    "personal_email": [
-        "/v1/people/personal-email-finder",
-        "/personal-email-finder",
-    ],
-}
 
 RESULT_FIELDS = (
     "name",
@@ -80,7 +67,7 @@ def emit(obj: dict[str, Any], exit_code: int = 0) -> None:
 def empty_result() -> dict[str, Any]:
     return {
         "ok": False,
-        "provider": None,
+        "provider": "zoominfo",
         "mode": None,
         "result": {f: None for f in RESULT_FIELDS},
         "sources": {f: None for f in RESULT_FIELDS},
@@ -132,20 +119,16 @@ def split_name(full: str | None) -> tuple[str | None, str | None]:
     return parts[0], " ".join(parts[1:])
 
 
-def http_json(
+def http_request(
     method: str,
     url: str,
     headers: dict[str, str],
-    body: dict[str, Any] | None = None,
+    body: bytes | None = None,
     timeout: float = 45.0,
 ) -> tuple[int, Any, str]:
-    data = None
     hdrs = dict(headers)
     hdrs.setdefault("User-Agent", USER_AGENT)
-    if body is not None:
-        data = json.dumps(body).encode("utf-8")
-        hdrs.setdefault("Content-Type", "application/json")
-    req = urllib.request.Request(url, data=data, headers=hdrs, method=method)
+    req = urllib.request.Request(url, data=body, headers=hdrs, method=method)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             raw = resp.read().decode("utf-8", errors="replace")
@@ -165,60 +148,31 @@ def http_json(
         return 0, {"error": str(e)}, str(e)
 
 
-def lm_post(
-    paths: list[str],
-    api_key: str,
-    body: dict[str, Any],
-    out: dict[str, Any],
-) -> tuple[int, Any]:
-    headers = {
-        "X-API-Key": api_key,
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-    }
-    last_code, last_payload = 0, {}
-    for path in paths:
-        url = LEADMAGIC_BASE + path
-        code, payload, _raw = http_json("POST", url, headers, body)
-        last_code, last_payload = code, payload
-        if code == 404:
-            out.setdefault("raw_notes", []).append(f"leadmagic 404 at {path}; trying next")
-            continue
-        out.setdefault("raw_notes", []).append(f"leadmagic {path} → HTTP {code}")
-        return code, payload
-    return last_code, last_payload
+def http_json(
+    method: str,
+    url: str,
+    headers: dict[str, str],
+    body: dict[str, Any] | None = None,
+    timeout: float = 45.0,
+) -> tuple[int, Any, str]:
+    data = None
+    hdrs = dict(headers)
+    if body is not None:
+        data = json.dumps(body).encode("utf-8")
+        hdrs.setdefault("Content-Type", "application/json")
+    return http_request(method, url, hdrs, data, timeout=timeout)
 
 
-def lm_credits_note(payload: Any, out: dict[str, Any], label: str) -> None:
-    if not isinstance(payload, dict):
-        return
-    for key in (
-        "credits_consumed",
-        "creditsConsumed",
-        "credit_cost",
-        "credits",
-        "remaining_credits",
-        "credits_remaining",
-    ):
-        if key in payload and payload[key] is not None:
-            out.setdefault("credits", {})[f"leadmagic:{label}:{key}"] = payload[key]
-
-
-def lm_error_message(code: int, payload: Any) -> str:
-    if code == 401 or code == 403:
-        return "LeadMagic API key rejected"
-    if code == 402:
-        return "LeadMagic credits exhausted or payment required"
-    if isinstance(payload, dict):
-        for k in ("message", "error", "detail", "msg"):
-            v = payload.get(k)
-            if isinstance(v, str) and v.strip():
-                return f"LeadMagic HTTP {code}: {v.strip()}"
-            if isinstance(v, dict) and v.get("message"):
-                return f"LeadMagic HTTP {code}: {v['message']}"
-    if code == 0:
-        return f"LeadMagic network error: {payload}"
-    return f"LeadMagic HTTP {code}"
+def http_form(
+    url: str,
+    headers: dict[str, str],
+    form: dict[str, str],
+    timeout: float = 45.0,
+) -> tuple[int, Any, str]:
+    data = urllib.parse.urlencode(form).encode("utf-8")
+    hdrs = dict(headers)
+    hdrs.setdefault("Content-Type", "application/x-www-form-urlencoded")
+    return http_request("POST", url, hdrs, data, timeout=timeout)
 
 
 def merge_field(
@@ -288,219 +242,9 @@ def extract_urls_from_obj(obj: Any) -> tuple[str | None, str | None, str | None]
     return linkedin, twitter, generic
 
 
-def apply_leadmagic_payload(out: dict[str, Any], payload: Any, label: str) -> None:
-    if not isinstance(payload, dict):
-        return
-    lm_credits_note(payload, out, label)
-    # Nested data wrappers
-    data = payload.get("data") if isinstance(payload.get("data"), dict) else payload
-    if isinstance(payload.get("person"), dict):
-        data = payload["person"]
-
-    first = pick(data.get("first_name"), data.get("firstName"), data.get("firstname"))
-    last = pick(data.get("last_name"), data.get("lastName"), data.get("lastname"))
-    full = pick(
-        data.get("full_name"),
-        data.get("fullName"),
-        data.get("name"),
-        (" ".join(x for x in (first, last) if x) or None),
-    )
-    merge_field(out, "name", full, "leadmagic")
-    merge_field(
-        out,
-        "title",
-        pick(
-            data.get("title"),
-            data.get("job_title"),
-            data.get("jobTitle"),
-            data.get("headline"),
-        ),
-        "leadmagic",
-    )
-    company = data.get("company")
-    if isinstance(company, dict):
-        company = pick(company.get("name"), company.get("company_name"))
-    merge_field(
-        out,
-        "company",
-        pick(
-            company,
-            data.get("company_name"),
-            data.get("companyName"),
-            data.get("organization"),
-        ),
-        "leadmagic",
-    )
-    merge_field(
-        out,
-        "email",
-        pick(
-            data.get("email"),
-            data.get("work_email"),
-            data.get("workEmail"),
-            data.get("business_email"),
-            data.get("personal_email"),
-            data.get("personalEmail"),
-        ),
-        "leadmagic",
-    )
-    merge_field(
-        out,
-        "phone",
-        pick(
-            data.get("mobile"),
-            data.get("mobile_number"),
-            data.get("mobilePhone"),
-            data.get("phone"),
-            data.get("phone_number"),
-            data.get("direct_number"),
-        ),
-        "leadmagic",
-    )
-    li, tw, gen = extract_urls_from_obj(data)
-    merge_field(out, "linkedin", li, "leadmagic")
-    merge_field(out, "twitter", tw, "leadmagic")
-    merge_field(out, "profile_url", pick(li, tw, gen, data.get("profile_url")), "leadmagic")
-
-
-def leadmagic_lookup(mode: str, inputs: dict[str, Any], api_key: str, out: dict[str, Any]) -> None:
-    out["provider"] = out.get("provider") or "leadmagic"
-    if not api_key:
-        out["errors"].append("LeadMagic API key missing — add a key under Keys below (or omarchy bar set)")
-        return
-
-    if mode == "email":
-        email = pick(inputs.get("email"), inputs.get("work_email"))
-        if not email:
-            out["errors"].append("email required")
-            return
-        body = {"work_email": email}
-        code, payload = lm_post(LM_PATHS["b2b_profile"], api_key, body, out)
-        if code and code < 400:
-            apply_leadmagic_payload(out, payload, "b2b-profile")
-        else:
-            # Try personal_email key once
-            code2, payload2 = lm_post(
-                LM_PATHS["b2b_profile"], api_key, {"personal_email": email}, out
-            )
-            if code2 and code2 < 400:
-                apply_leadmagic_payload(out, payload2, "b2b-profile-personal")
-            else:
-                out["errors"].append(lm_error_message(code or code2, payload or payload2))
-        # Mobile if we have email
-        if not is_blank(out["result"].get("email")) or email:
-            mbody = {"work_email": pick(out["result"].get("email"), email)}
-            mcode, mpayload = lm_post(LM_PATHS["mobile_finder"], api_key, mbody, out)
-            if mcode and mcode < 400:
-                apply_leadmagic_payload(out, mpayload, "mobile-finder")
-
-    elif mode == "profile":
-        purl = normalize_profile_url(pick(inputs.get("profile_url"), inputs.get("url")))
-        if not purl:
-            out["errors"].append("profile_url required")
-            return
-        # Profile search for identity fields
-        code, payload = lm_post(
-            LM_PATHS["profile_search"], api_key, {"profile_url": purl}, out
-        )
-        if code and code < 400:
-            apply_leadmagic_payload(out, payload, "profile-search")
-        else:
-            out["warnings"].append(lm_error_message(code, payload))
-        # Work email from profile
-        code2, payload2 = lm_post(
-            LM_PATHS["b2b_profile_email"], api_key, {"profile_url": purl}, out
-        )
-        if code2 and code2 < 400:
-            apply_leadmagic_payload(out, payload2, "b2b-profile-email")
-        else:
-            out["warnings"].append(lm_error_message(code2, payload2))
-        # Personal email fallback
-        if is_blank(out["result"].get("email")):
-            code3, payload3 = lm_post(
-                LM_PATHS["personal_email"], api_key, {"profile_url": purl}, out
-            )
-            if code3 and code3 < 400:
-                apply_leadmagic_payload(out, payload3, "personal-email-finder")
-        # Mobile
-        mbody: dict[str, Any] = {"profile_url": purl}
-        if not is_blank(out["result"].get("email")):
-            mbody["work_email"] = out["result"]["email"]
-        mcode, mpayload = lm_post(LM_PATHS["mobile_finder"], api_key, mbody, out)
-        if mcode and mcode < 400:
-            apply_leadmagic_payload(out, mpayload, "mobile-finder")
-        merge_field(out, "profile_url", purl, "leadmagic")
-        if "linkedin.com" in purl.lower():
-            merge_field(out, "linkedin", purl, "leadmagic")
-        if "x.com/" in purl.lower() or "twitter.com" in purl.lower():
-            merge_field(out, "twitter", purl, "leadmagic")
-
-    elif mode == "name_company":
-        full = pick(inputs.get("full_name"), inputs.get("name"))
-        first = pick(inputs.get("first_name"), inputs.get("firstName"))
-        last = pick(inputs.get("last_name"), inputs.get("lastName"))
-        if not first and full:
-            first, last = split_name(full)
-        domain = pick(inputs.get("domain"), inputs.get("company_domain"))
-        company = pick(inputs.get("company"), inputs.get("company_name"), inputs.get("companyName"))
-        if not first or (not domain and not company):
-            out["errors"].append("full name + domain (or company) required")
-            return
-        body: dict[str, Any] = {"first_name": first}
-        if last:
-            body["last_name"] = last
-        if domain:
-            body["domain"] = domain
-        if company:
-            body["company_name"] = company
-        code, payload = lm_post(LM_PATHS["email_finder"], api_key, body, out)
-        if code and code < 400:
-            apply_leadmagic_payload(out, payload, "email-finder")
-            if is_blank(out["result"].get("name")):
-                merge_field(out, "name", " ".join(x for x in (first, last) if x), "leadmagic")
-            if is_blank(out["result"].get("company")) and company:
-                merge_field(out, "company", company, "leadmagic")
-        else:
-            out["errors"].append(lm_error_message(code, payload))
-        if not is_blank(out["result"].get("email")):
-            # Enrich profile from found email
-            code2, payload2 = lm_post(
-                LM_PATHS["b2b_profile"],
-                api_key,
-                {"work_email": out["result"]["email"]},
-                out,
-            )
-            if code2 and code2 < 400:
-                apply_leadmagic_payload(out, payload2, "b2b-profile")
-            mcode, mpayload = lm_post(
-                LM_PATHS["mobile_finder"],
-                api_key,
-                {"work_email": out["result"]["email"]},
-                out,
-            )
-            if mcode and mcode < 400:
-                apply_leadmagic_payload(out, mpayload, "mobile-finder")
-
-    elif mode == "phone":
-        phone = pick(inputs.get("phone"), inputs.get("mobile"))
-        if not phone:
-            out["errors"].append("phone required")
-            return
-        # LeadMagic has no clear phone→profile MVP endpoint; record attempt.
-        # Do NOT echo the typed phone into result — that is not enrichment
-        # (echoing would make ok:true and pin sources.phone so ZoomInfo cannot fill).
-        out["warnings"].append(
-            "LeadMagic has no dedicated phone→profile enrich in this MVP; "
-            "try ZoomInfo or waterfall"
-        )
-        out["raw_notes"].append("leadmagic:phone-mode skipped (no endpoint)")
-    else:
-        out["errors"].append(f"unknown mode: {mode}")
-
-
 def zi_error_message(code: int, payload: Any) -> str:
     if code in (401, 403):
-        return "ZoomInfo token rejected"
+        return "ZoomInfo credentials rejected"
     if isinstance(payload, dict):
         errs = payload.get("errors")
         if isinstance(errs, list) and errs:
@@ -508,12 +252,87 @@ def zi_error_message(code: int, payload: Any) -> str:
             if isinstance(e0, dict):
                 return f"ZoomInfo HTTP {code}: {e0.get('detail') or e0.get('title') or e0}"
             return f"ZoomInfo HTTP {code}: {e0}"
-        for k in ("message", "error", "detail"):
+        for k in ("message", "error", "detail", "error_description"):
             if payload.get(k):
                 return f"ZoomInfo HTTP {code}: {payload[k]}"
     if code == 0:
         return f"ZoomInfo network error: {payload}"
     return f"ZoomInfo HTTP {code}"
+
+
+def load_cached_token() -> str | None:
+    try:
+        if not TOKEN_CACHE_PATH.is_file():
+            return None
+        data = json.loads(TOKEN_CACHE_PATH.read_text(encoding="utf-8"))
+        token = str(data.get("access_token") or "").strip()
+        expires_at = float(data.get("expires_at") or 0)
+        if not token or expires_at <= time.time():
+            return None
+        return token
+    except Exception:
+        return None
+
+
+def save_cached_token(access_token: str, expires_in: int | float) -> None:
+    try:
+        TOKEN_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        expires_at = time.time() + max(0.0, float(expires_in) - TOKEN_SKEW_SEC)
+        payload = {
+            "access_token": access_token,
+            "expires_at": expires_at,
+            "cached_at": time.time(),
+        }
+        TOKEN_CACHE_PATH.write_text(
+            json.dumps(payload, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        try:
+            os.chmod(TOKEN_CACHE_PATH, 0o600)
+        except Exception:
+            pass
+    except Exception:
+        pass
+
+
+def mint_zoominfo_token(
+    client_id: str,
+    client_secret: str,
+    out: dict[str, Any],
+) -> str | None:
+    cached = load_cached_token()
+    if cached:
+        out.setdefault("raw_notes", []).append("zoominfo token cache hit")
+        return cached
+
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
+    form = {
+        "grant_type": "client_credentials",
+        "client_id": client_id,
+        "client_secret": client_secret,
+    }
+    code, payload, _raw = http_form(ZOOMINFO_TOKEN, headers, form)
+    out.setdefault("raw_notes", []).append(f"zoominfo token → HTTP {code}")
+    if not code or code >= 400:
+        out["errors"].append(zi_error_message(code, payload))
+        return None
+    if not isinstance(payload, dict):
+        out["errors"].append("ZoomInfo token response invalid")
+        return None
+    token = str(payload.get("access_token") or "").strip()
+    if not token:
+        out["errors"].append("ZoomInfo token response missing access_token")
+        return None
+    expires_in = payload.get("expires_in", 3600)
+    try:
+        expires_in = int(expires_in)
+    except (TypeError, ValueError):
+        expires_in = 3600
+    save_cached_token(token, expires_in)
+    return token
 
 
 def apply_zoominfo_payload(out: dict[str, Any], payload: Any) -> None:
@@ -635,12 +454,21 @@ def zoominfo_attrs_for_mode(mode: str, inputs: dict[str, Any]) -> dict[str, Any]
     return None
 
 
-def zoominfo_lookup(mode: str, inputs: dict[str, Any], token: str, out: dict[str, Any]) -> None:
-    out["provider"] = out.get("provider") or "zoominfo"
-    if not token:
+def zoominfo_lookup(
+    mode: str,
+    inputs: dict[str, Any],
+    client_id: str,
+    client_secret: str,
+    out: dict[str, Any],
+) -> None:
+    out["provider"] = "zoominfo"
+    if not client_id or not client_secret:
         out["errors"].append(
-            "ZoomInfo / GTM.AI bearer token missing — add a key under Keys below (or omarchy bar set)"
+            "ZoomInfo Client ID + Secret missing — add them under Keys below (or omarchy bar set)"
         )
+        return
+    token = mint_zoominfo_token(client_id, client_secret, out)
+    if not token:
         return
     attrs = zoominfo_attrs_for_mode(mode, inputs)
     if not attrs:
@@ -667,8 +495,23 @@ def zoominfo_lookup(mode: str, inputs: dict[str, Any], token: str, out: dict[str
     code, payload, _raw = http_json("POST", ZOOMINFO_ENRICH, headers, body)
     out.setdefault("raw_notes", []).append(f"zoominfo enrich → HTTP {code}")
     if code in (401, 403):
-        out["errors"].append("ZoomInfo token rejected")
-        return
+        # Stale cache? Clear and retry once with a fresh mint.
+        try:
+            if TOKEN_CACHE_PATH.is_file():
+                TOKEN_CACHE_PATH.unlink()
+        except Exception:
+            pass
+        out.setdefault("raw_notes", []).append("zoominfo 401/403 — reminting token")
+        token2 = mint_zoominfo_token(client_id, client_secret, out)
+        if not token2:
+            out["errors"].append("ZoomInfo credentials rejected")
+            return
+        headers["Authorization"] = f"Bearer {token2}"
+        code, payload, _raw = http_json("POST", ZOOMINFO_ENRICH, headers, body)
+        out.setdefault("raw_notes", []).append(f"zoominfo enrich retry → HTTP {code}")
+        if code in (401, 403):
+            out["errors"].append("ZoomInfo credentials rejected")
+            return
     if not code or code >= 400:
         out["errors"].append(zi_error_message(code, payload))
         return
@@ -683,14 +526,6 @@ def zoominfo_lookup(mode: str, inputs: dict[str, Any], token: str, out: dict[str
                 merge_field(out, "twitter", purl, "input")
 
 
-def missing_fields(out: dict[str, Any]) -> list[str]:
-    want = ["email", "phone", "linkedin", "name", "title", "company", "profile_url"]
-    return [f for f in want if is_blank(out["result"].get(f))]
-
-
-def has_any_result(out: dict[str, Any]) -> bool:
-    return any(not is_blank(out["result"].get(f)) for f in RESULT_FIELDS)
-
 def has_enriched_result(out: dict[str, Any]) -> bool:
     """True when at least one field came from a real provider (not entered/input)."""
     sources = out.get("sources") or {}
@@ -704,89 +539,13 @@ def has_enriched_result(out: dict[str, Any]) -> bool:
     return False
 
 
-
-
-def run(provider: str, mode: str, inputs: dict[str, Any]) -> dict[str, Any]:
+def run(mode: str, inputs: dict[str, Any]) -> dict[str, Any]:
     out = empty_result()
-    out["provider"] = provider
     out["mode"] = mode
-    lm_key = os.environ.get("LEADMAGIC_API_KEY", "").strip()
-    zi_token = os.environ.get("ZOOMINFO_BEARER_TOKEN", "").strip()
-
-    if provider == "leadmagic":
-        leadmagic_lookup(mode, inputs, lm_key, out)
-    elif provider == "zoominfo":
-        zoominfo_lookup(mode, inputs, zi_token, out)
-    elif provider == "waterfall":
-        out["provider"] = "waterfall"
-        # LeadMagic first
-        if lm_key:
-            leadmagic_lookup(mode, inputs, lm_key, out)
-        else:
-            out["warnings"].append(
-                "LeadMagic API key missing — add a key under Keys below (or omarchy bar set)"
-            )
-        # Clear hard errors that block ZoomInfo fill if they are key-missing only
-        # Keep them but still try ZoomInfo for missing fields.
-        need = missing_fields(out)
-        if need:
-            if zi_token:
-                # Build inputs enriched with anything LeadMagic already found
-                zi_inputs = dict(inputs)
-                if not is_blank(out["result"].get("email")):
-                    zi_inputs["email"] = out["result"]["email"]
-                if not is_blank(out["result"].get("profile_url")):
-                    zi_inputs.setdefault("profile_url", out["result"]["profile_url"])
-                if not is_blank(out["result"].get("linkedin")):
-                    zi_inputs.setdefault("profile_url", out["result"]["linkedin"])
-                if not is_blank(out["result"].get("name")):
-                    zi_inputs.setdefault("full_name", out["result"]["name"])
-                if not is_blank(out["result"].get("company")):
-                    zi_inputs.setdefault("company", out["result"]["company"])
-                if not is_blank(out["result"].get("phone")):
-                    zi_inputs.setdefault("phone", out["result"]["phone"])
-                # Prefer same mode; if phone mode and LM skipped, still use phone.
-                pre_errs = list(out["errors"])
-                zoominfo_lookup(mode, zi_inputs, zi_token, out)
-                # Drop duplicate key-missing noise if we actually filled via the other
-                if has_any_result(out):
-                    out["errors"] = [
-                        e
-                        for e in out["errors"]
-                        if "missing" not in e.lower()
-                        or "rejected" in e.lower()
-                        or "HTTP" in e
-                    ]
-                # Restore unique prior errors that aren't mere key-missing if both missing
-                for e in pre_errs:
-                    if e not in out["errors"] and "rejected" in e.lower():
-                        out["errors"].append(e)
-            else:
-                out["warnings"].append(
-                    "ZoomInfo / GTM.AI bearer token missing — add a key under Keys below (or omarchy bar set)"
-                )
-        if not lm_key and not zi_token:
-            out["errors"] = [
-                "No API keys configured — add a key under Keys below (or omarchy bar set)"
-            ]
-    else:
-        out["errors"].append(f"unknown provider: {provider}")
-
-    # Waterfall phone honesty: only after ZoomInfo ran, if still no provider phone,
-    # surface the typed number labeled "entered" (not "input") so it cannot pin/block
-    # a later ZI fill and is not claimed as enrichment.
-    if provider == "waterfall" and mode == "phone":
-        typed = pick(inputs.get("phone"), inputs.get("mobile"))
-        if typed and is_blank(out["result"].get("phone")):
-            out["result"]["phone"] = str(typed).strip()
-            out["sources"]["phone"] = "entered"
-            out["warnings"].append(
-                "phone shown is what you entered — not provider-enriched"
-            )
-
+    client_id = os.environ.get("ZOOMINFO_CLIENT_ID", "").strip()
+    client_secret = os.environ.get("ZOOMINFO_CLIENT_SECRET", "").strip()
+    zoominfo_lookup(mode, inputs, client_id, client_secret, out)
     rejected = any("rejected" in e.lower() for e in out["errors"])
-    # Honor rejected guard; do not override with a blank "has results → ok" pass.
-    # "entered"/"input" fields alone do not count as successful enrich.
     out["ok"] = has_enriched_result(out) and not rejected
     return out
 
@@ -794,13 +553,7 @@ def run(provider: str, mode: str, inputs: dict[str, Any]) -> dict[str, Any]:
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(
         prog="lookup.py",
-        description="Enricherino individual contact lookup (LeadMagic / ZoomInfo / waterfall)",
-    )
-    p.add_argument(
-        "--provider",
-        required=True,
-        choices=["leadmagic", "zoominfo", "waterfall"],
-        help="Which provider path to use",
+        description="Enricherino individual contact lookup (ZoomInfo GTM)",
     )
     p.add_argument(
         "--mode",
@@ -827,7 +580,7 @@ def main(argv: list[str] | None = None) -> None:
         emit(
             {
                 "ok": False,
-                "provider": args.provider,
+                "provider": "zoominfo",
                 "mode": args.mode,
                 "result": {f: None for f in RESULT_FIELDS},
                 "sources": {f: None for f in RESULT_FIELDS},
@@ -838,7 +591,7 @@ def main(argv: list[str] | None = None) -> None:
             },
             exit_code=2,
         )
-    out = run(args.provider, args.mode, inputs)
+    out = run(args.mode, inputs)
     emit(out, exit_code=0 if out.get("ok") else 1)
 
 

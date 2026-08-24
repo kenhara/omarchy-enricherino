@@ -5,12 +5,21 @@
 Paste one thing. Hit FIND. Get a contact card.
 
 Individual contact lookup for Omarchy — **yellow-pages / pixel desk joke, not a sequencer.**
-Delight in ≤10 seconds. Waterfall under the hood. Unofficial.
+Delight in ≤10 seconds. ZoomInfo under the hood. Unofficial.
 
 **ID:** `kenhara.enricherino`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.2.13
+**Version:** 0.3.0
+
+### 0.3.0
+- **ZoomInfo only.** Drop LeadMagic, waterfall, and `providerMode`. Keys UI takes
+  **Client ID** + **Client Secret** (password echo). Enricherino auto-mints Bearer
+  via `POST …/gtm/oauth/v1/token` (client_credentials) and caches
+  `~/.cache/enricherino/zi_token.json` (~60s early expiry). Never store
+  `access_token` in schema. Paste once under Keys — survives reload via
+  `persistSetting` / `mirrorSettingsKey`. Empty-state: *add ZoomInfo Client ID +
+  Secret under Keys*.
 
 ### 0.2.13
 - In-panel **Keys** disclosure (LeadMagic / ZoomInfo / provider mode) — Omarchy has no widget-settings GUI; mirrors into bar settings for `omarchy bar set` / shell.json. Honest empty-state copy. Tintable FA search bar glyph `\uf002` (caption).
@@ -79,8 +88,8 @@ Local folder: **`omarchy-enricherino`**.
 ## Unofficial disclaimer
 
 **Enricherino is unofficial.** It is **not** affiliated with, endorsed by, or
-sponsored by LeadMagic, ZoomInfo, GTM.AI, or any related entity. It is a thin
-personal client that calls public/documented HTTP APIs with **your** keys.
+sponsored by ZoomInfo, GTM.AI, or any related entity. It is a thin personal
+client that calls public/documented HTTP APIs with **your** Client ID + Secret.
 Use only for lawful individual follow-up. **Not a sequencer.**
 
 ## Discoverability
@@ -88,8 +97,8 @@ Use only for lawful individual follow-up. **Not a sequencer.**
 Marketplace filing: **Productivity** · tags `bar, quickshell` (suggest missing
 tag: `crm` or `enrichment`).
 
-Top-level `keywords` in `manifest.json` may help marketplace/search (LeadMagic,
-ZoomInfo, GTM.AI, LinkedIn, Apollo, Clearbit, Hunter, etc.).
+Top-level `keywords` in `manifest.json` may help marketplace/search (ZoomInfo,
+GTM.AI, LinkedIn, Apollo, Clearbit, Hunter, etc.).
 `barWidget.aliases` are for discovery docs and human search — the bar loader
 may not index them. Display name stays **Enricherino** (brand-free).
 
@@ -129,58 +138,60 @@ omarchy-shell shell rescanPlugins
 
 ## Configure keys
 
-Omarchy has **no widget-settings GUI**. Set keys in-panel or via CLI / `shell.json`.
+Omarchy has **no widget-settings GUI**. Set credentials in-panel or via CLI / `shell.json`.
 
 ### 1) In-panel Keys (preferred)
 
 Open Enricherino → expand **Keys ▾**:
 
-- LeadMagic API key (password field)
-- ZoomInfo bearer (password field)
-- Provider mode: `leadmagic` | `zoominfo` | `waterfall` (default)
+1. ZoomInfo GTM Studio → **Custom Apps** → **Create** → **Client Credentials**
+2. Scopes at least **Data** + **GTM**
+3. Paste **Client ID** + **Client Secret** (password echo) into Keys
 
-Edits write into the store and mirror to bar settings so they survive reload.
-Without a key, Keys expands by default and the empty-state says **add a key under Keys below**.
+Enricherino **mints Bearer tokens for you** — never paste a Bearer. Edits write
+into the store and mirror to bar settings so they survive reload. Without both
+fields, Keys expands by default and the empty-state says **add ZoomInfo Client
+ID + Secret under Keys**.
 
 ### 2) CLI (`omarchy bar set`)
 
 ```sh
-omarchy bar set kenhara.enricherino leadmagicApiKey '…'
-omarchy bar set kenhara.enricherino zoominfoBearerToken '…'
-omarchy bar set kenhara.enricherino providerMode waterfall
+omarchy bar set kenhara.enricherino zoominfoClientId '…'
+omarchy bar set kenhara.enricherino zoominfoClientSecret '…'
 ```
 
 ### 3) `~/.config/omarchy/shell.json`
 
-Edit the Enricherino bar layout entry settings (`leadmagicApiKey`,
-`zoominfoBearerToken`, `providerMode`), then reload the shell.
+Edit the Enricherino bar layout entry settings (`zoominfoClientId`,
+`zoominfoClientSecret`), then reload the shell.
 
 | Schema key | Label | Env passed to script |
 |------------|-------|----------------------|
-| `leadmagicApiKey` | LeadMagic API key | `LEADMAGIC_API_KEY` → header `X-API-Key` |
-| `zoominfoBearerToken` | ZoomInfo / GTM.AI bearer token | `ZOOMINFO_BEARER_TOKEN` → `Authorization: Bearer …` |
-| `providerMode` | Provider mode: `leadmagic` \| `zoominfo` \| `waterfall` (default) | CLI `--provider` |
+| `zoominfoClientId` | ZoomInfo Client ID | `ZOOMINFO_CLIENT_ID` |
+| `zoominfoClientSecret` | ZoomInfo Client Secret | `ZOOMINFO_CLIENT_SECRET` |
 
-**Do not commit real keys.** Defaults are empty strings. Keys live in Omarchy bar
-settings **plaintext**. At lookup time they are passed via
+**Do not commit real credentials.** Defaults are empty strings. Keys live in
+Omarchy bar settings **plaintext**. At lookup time they are passed via
 `Process.environment` (not argv) for that one call only — **never** written to
-`~/.cache/enricherino/`.
+the result cache. Minted access tokens are cached separately at
+`~/.cache/enricherino/zi_token.json` (chmod 600 best-effort; expire ~60s early).
+Leftover `zoominfoBearerToken` / LeadMagic settings are ignored.
 
 CLI smoke (optional):
 
 ```sh
-export LEADMAGIC_API_KEY='…'
-export ZOOMINFO_BEARER_TOKEN='…'
-python3 scripts/lookup.py --provider waterfall --mode email --json '{"email":"a@b.com"}'
+export ZOOMINFO_CLIENT_ID='…'
+export ZOOMINFO_CLIENT_SECRET='…'
+python3 scripts/lookup.py --mode email --json '{"email":"a@b.com"}'
 ```
 
 ## Usage
 
-1. **Left-click** bar `● YP` → panel.
+1. **Left-click** bar search glyph → panel.
 2. Paste into the one field: email, LinkedIn, X, phone, or `Name at company.com`.
 3. Tiny hint under the field (“looks like an email”) updates as you type.
-4. Hit **FIND** (or Enter in the paste field). Mode is auto-detected; existing
-   lookup modes still run under the hood via `scripts/lookup.py`.
+4. Hit **FIND** (or Enter in the paste field). Mode is auto-detected; lookup
+   runs via `scripts/lookup.py`.
 5. **Contact card:** name big, title · company, then email / phone / LinkedIn / X
    with per-row **Copy**, plus one **Copy card**.
 6. **Middle-click** bar clears the last result (and cache) — does **not** auto-fire paid APIs.
@@ -195,7 +206,7 @@ python3 scripts/lookup.py --provider waterfall --mode email --json '{"email":"a@
 | Paste field | One multiline/paste; Enter triggers FIND |
 | FIND | Detect mode → fill inputs → `lookup()` |
 | Copy / Copy card | Clipboard field or full card (toast only on success) |
-| Keys ▾ | In-panel LeadMagic / ZoomInfo / provider mode; expands when no key |
+| Keys ▾ | Client ID + Client Secret; expands when missing |
 
 ### Detect modes
 
@@ -206,28 +217,23 @@ python3 scripts/lookup.py --provider waterfall --mode email --json '{"email":"a@
 | looks like a phone | mostly digits / `+` `()` `-` |
 | looks like name + company | `Name at domain`, `Name @ Company`, `Name, domain.com` |
 
-Provider waterfall stays the default. `providerMode` remains a schema **enum**
-(`leadmagic` | `zoominfo` | `waterfall`); change it under in-panel **Keys**
-(or CLI / shell.json).
+Single provider path: **ZoomInfo GTM** contact enrich.
 
 ### Honest capability notes
 
-- **Phone → contact** is **ZoomInfo-only** in MVP (LeadMagic skips; waterfall
-  still works when a ZoomInfo token is present).
+- **Phone → contact** via ZoomInfo enrich `phone`.
 - **X/Twitter profile URL** is **best-effort**; LinkedIn profile URLs hit more
-  reliably on both providers.
+  reliably.
 - Individual follow-up only — **not a sequencer**.
 
 ## Controls / flows that work
 
-| Mode | LeadMagic | ZoomInfo | Waterfall |
-|------|-----------|----------|-----------|
-| Email | `POST /v1/people/b2b-profile` (+ mobile-finder) | Contact enrich `email` / `emailAddress` | LM then ZI for gaps |
-| Profile URL (LinkedIn **or** X/Twitter) | profile-search + b2b-profile-email (+ personal-email + mobile) | enrich `externalURL` | LM then ZI |
-| Name + company | email-finder (`first_name`/`last_name`/`domain`) then profile | enrich `fullName`+`companyName` | LM then ZI |
-| Phone | honest skip (no clear LM phone→profile in MVP) | enrich `phone` | ZI fills when LM cannot |
-
-Waterfall = LeadMagic first, then ZoomInfo only for still-missing fields.
+| Mode | ZoomInfo |
+|------|----------|
+| Email | Contact enrich `email` / `emailAddress` |
+| Profile URL (LinkedIn **or** X/Twitter) | enrich `externalURL` |
+| Name + company | enrich `fullName`+`companyName` |
+| Phone | enrich `phone` |
 
 ## Remove
 
@@ -243,29 +249,29 @@ rm -rf ~/.cache/enricherino
 
 ## Network
 
-- LeadMagic: `https://api.leadmagic.io`
-- ZoomInfo GTM: `POST https://api.zoominfo.com/gtm/data/v1/contacts/enrich`
+- Token: `POST https://api.zoominfo.com/gtm/oauth/v1/token` (`grant_type=client_credentials`)
+- Enrich: `POST https://api.zoominfo.com/gtm/data/v1/contacts/enrich`
 
-Outbound HTTPS only when you click FIND. Keys stay in Omarchy bar settings /
+Outbound HTTPS only when you click FIND. Credentials stay in Omarchy bar settings /
 process env for that one call — never written into the repo or the result cache.
 User-Agent: `Enricherino/<manifest version> (Omarchy unofficial; kenhara.enricherino)`.
 
 Cache (last **successful** lookup only): `~/.cache/enricherino/last.json`.
+Token cache: `~/.cache/enricherino/zi_token.json`.
 
 ## Scripts
 
-`scripts/lookup.py` — urllib only, no extra deps. Modes unchanged.
+`scripts/lookup.py` — urllib only, no extra deps.
 
 ```sh
 python3 scripts/lookup.py --help
-python3 scripts/lookup.py --provider leadmagic|zoominfo|waterfall \
-  --mode email|profile|name_company|phone --json '{…}'
+python3 scripts/lookup.py --mode email|profile|name_company|phone --json '{…}'
 ```
 
 ## Layout
 
 ```
-manifest.json          # kenhara.enricherino @ 0.2.13
+manifest.json          # kenhara.enricherino @ 0.3.0
 BarWidget.qml          # bar entry + Loader → Panel; middle-click clear
 Panel.qml              # paste + FIND + Keys + contact card
 YellowStore.qml        # pasteInput, detectMode, findFromPaste, cache, lookup
@@ -283,12 +289,14 @@ README.md
 
 ## Security baseline
 
-- Keys live in **Omarchy bar settings as plaintext** (in-panel Keys, `omarchy bar set`, or shell.json).
-  Injected via `Process.environment` for a single `lookup.py` run — **not** in
-  argv. **Never** persisted to `~/.cache/enricherino/` or the repo.
-- Cache stores the last successful result card — no API keys / bearer tokens.
+- Credentials live in **Omarchy bar settings as plaintext** (in-panel Keys,
+  `omarchy bar set`, or shell.json). Injected via `Process.environment` for a
+  single `lookup.py` run — **not** in argv. **Never** persisted to the result
+  cache or the repo. Access tokens are minted at runtime and cached only under
+  `~/.cache/enricherino/zi_token.json` — **not** in schema.
+- Cache stores the last successful result card — no Client Secret / access tokens.
 - Outbound HTTPS only on explicit FIND. No auto-fire on panel open or middle-click.
-- MIT at repo root. Unofficial — not affiliated with LeadMagic, ZoomInfo, or GTM.AI.
+- MIT at repo root. Unofficial — not affiliated with ZoomInfo or GTM.AI.
 
 ## Preview
 

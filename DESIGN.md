@@ -1,6 +1,6 @@
 # Enricherino — design notes
 
-**Status:** 0.2.4 (discoverability)  
+**Status:** 0.3.0 (ZoomInfo-only Client Credentials)  
 **Id:** `kenhara.enricherino`  
 **Peers:** Compliantish, Rocketlauncher, Encyclopedic, Scriptural
 
@@ -8,7 +8,7 @@
 
 Personal, joke-friendly **yellow pages / pixel desk**. Look somebody up in
 ≤10 seconds. Not a sequencer, not blast outbound, not a CRM. Enrich a single
-follow-up contact via LeadMagic and/or ZoomInfo GTM under the hood.
+follow-up contact via ZoomInfo GTM.
 
 ## Shape (playbook)
 
@@ -16,37 +16,36 @@ follow-up contact via LeadMagic and/or ZoomInfo GTM under the hood.
 |--------|--------|
 | `bar-widget` + nested `Panel.qml` | Same — no separate panel kind |
 | Theme tokens (`Color` / `Style` / `bar.foreground`) | Yellow accent on title + FIND |
-| Schema knobs early | API keys + `providerMode` (advanced only) |
+| Schema knobs early | Client ID + Client Secret only |
 | Honest empty/error | One-liner keys hint; toast on miss |
 | Ship extras | `preview.png`, Remove / Security baseline / Controls |
-| Cache last success | `~/.cache/enricherino/last.json` (never keys) |
+| Cache last success | `~/.cache/enricherino/last.json` (never secrets) |
 | Middle-click useful | Clear last result + toast "Cleared" |
 | MIT + manifest at root | Marketplace layout |
-| Unofficial disclaimer | LeadMagic / ZoomInfo / GTM.AI |
+| Unofficial disclaimer | ZoomInfo / GTM.AI |
 
 ## Bar
 
-`● YP` — left click toggles panel. Tooltip: *Enricherino — look somebody up ·
+FA search `\uf002` — left click toggles panel. Tooltip: *Enricherino — look somebody up ·
 middle: clear*. Middle click clears last result / cache (does **not** auto-lookup).
 Right-click unused.
 
-## Panel (0.2.0+)
+## Panel (0.3.0)
 
 1. Big **ENRICHERINO** (letter-spacing) + *look somebody up*
 2. One multiline/paste field
 3. Huge yellow **FIND**
 4. Tiny detected-mode hint under the field
-5. In-panel Keys disclosure (expands if no key); empty-state “add a key under Keys below”
+5. In-panel Keys: Client ID + Client Secret + create-app help; expands if missing
 6. Contact card: name big, title · company, email/phone/LinkedIn/X + Copy, **Copy card**
-7. Quiet footer: unofficial · waterfall under the hood · not a sequencer
+7. Quiet footer: unofficial · ZoomInfo · not a sequencer
 
-**Removed from primary UI:** provider chips, input mode tabs, per-mode fields.
+**Removed:** LeadMagic, waterfall / `providerMode`, Bearer paste field, provider chips, input mode tabs.
 
-## Providers (schema / under the hood)
+## Provider
 
-- **leadmagic** — `X-API-Key` → `https://api.leadmagic.io`
-- **zoominfo** — Bearer → GTM enrich
-- **waterfall** — LeadMagic first, ZoomInfo fills gaps (default)
+- **zoominfo** — Client Credentials → mint Bearer → GTM `contacts/enrich`
+- Token cache: `~/.cache/enricherino/zi_token.json` (expire ~60s early)
 
 ## Non-goals
 

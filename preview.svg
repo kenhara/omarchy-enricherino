@@ -43,7 +43,7 @@
   <text x="788" y="580" fill="#f0f0fa" font-size="13" font-family="ui-sans-serif, system-ui, sans-serif">x.com/alex</text>
   <rect x="788" y="600" width="324" height="34" rx="8" fill="rgba(255,219,71,0.16)" stroke="rgba(255,219,71,0.4)"/>
   <text x="900" y="622" fill="#f0f0fa" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700">Copy card</text>
-  <text x="768" y="692" fill="#f0f0fa" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.28">unofficial · waterfall under the hood · not a sequencer</text>
+  <text x="768" y="692" fill="#f0f0fa" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.28">unofficial · ZoomInfo · not a sequencer</text>
   <!-- left caption -->
   <text x="64" y="360" fill="#f0f0fa" font-size="42" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700" opacity="0.9">Yellow</text>
   <text x="64" y="412" fill="#ffdb47" font-size="42" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700">Pixels</text>

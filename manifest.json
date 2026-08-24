@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "kenhara.enricherino",
   "name": "Enricherino",
-  "version": "0.2.13",
+  "version": "0.3.0",
   "author": "Harris Kenny",
   "license": "MIT",
-  "description": "Paste one thing. Hit FIND. Get a contact card. Unofficial LeadMagic / ZoomInfo / GTM.AI waterfall enrichment; not affiliated.",
+  "description": "Paste one thing. Hit FIND. Get a contact card. Unofficial ZoomInfo / GTM.AI enrichment; not affiliated.",
   "kinds": [
     "bar-widget"
   ],
@@ -20,8 +20,6 @@
     "email finder",
     "enrich",
     "enrichment",
-    "waterfall",
-    "leadmagic",
     "zoominfo",
     "zoom info",
     "gtm.ai",
@@ -46,7 +44,7 @@
   ],
   "barWidget": {
     "displayName": "Enricherino",
-    "description": "Paste email / LinkedIn / X / phone / Name at company — FIND — contact card. Waterfall under the hood (LeadMagic / ZoomInfo). Unofficial; not a sequencer.",
+    "description": "Paste email / LinkedIn / X / phone / Name at company — FIND — contact card via ZoomInfo. Unofficial; not a sequencer.",
     "category": "Productivity",
     "allowMultiple": false,
     "defaultSection": "right",
@@ -59,8 +57,6 @@
       "email finder",
       "enrich",
       "enrichment",
-      "waterfall",
-      "leadmagic",
       "zoominfo",
       "zoom info",
       "gtm.ai",
@@ -75,36 +71,23 @@
       "yellow pixels"
     ],
     "defaults": {
-      "leadmagicApiKey": "",
-      "zoominfoBearerToken": "",
-      "providerMode": "waterfall"
+      "zoominfoClientId": "",
+      "zoominfoClientSecret": ""
     },
     "schema": [
       {
-        "key": "leadmagicApiKey",
+        "key": "zoominfoClientId",
         "type": "string",
-        "label": "LeadMagic API key",
-        "description": "X-API-Key for https://api.leadmagic.io. Leave empty to skip LeadMagic. Never commit real keys.",
+        "label": "ZoomInfo Client ID",
+        "description": "Client ID from ZoomInfo GTM Studio → Custom Apps → Client Credentials (scopes: Data + GTM). Never commit real credentials.",
         "defaultValue": ""
       },
       {
-        "key": "zoominfoBearerToken",
+        "key": "zoominfoClientSecret",
         "type": "string",
-        "label": "ZoomInfo / GTM.AI bearer token",
-        "description": "Access token for Authorization Bearer on ZoomInfo GTM enrich. Never commit real tokens.",
+        "label": "ZoomInfo Client Secret",
+        "description": "Client Secret from the same Custom App. Enricherino mints Bearer tokens automatically — never paste a Bearer. Never commit real secrets.",
         "defaultValue": ""
-      },
-      {
-        "key": "providerMode",
-        "type": "enum",
-        "label": "Provider mode",
-        "description": "leadmagic | zoominfo | waterfall (LeadMagic first, then ZoomInfo for missing fields). Default waterfall.",
-        "options": [
-          "leadmagic",
-          "zoominfo",
-          "waterfall"
-        ],
-        "defaultValue": "waterfall"
       }
     ]
   }

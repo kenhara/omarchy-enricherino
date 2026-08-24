@@ -97,12 +97,7 @@ Panel {
     }
   }
 
-  function setProviderMode(mode) {
-    if (!liveStore) return
-    root.persistSetting("providerMode", liveStore.normalizeProvider(mode))
-  }
-
-  readonly property int panelBaseHeight: Style.space(root.keysMenuOpen ? 860 : 720)
+  readonly property int panelBaseHeight: Style.space(root.keysMenuOpen ? 900 : 680)
 
   KeyboardPanel {
     id: panel
@@ -229,7 +224,7 @@ Panel {
             Text {
               width: parent.width
               visible: liveStore && !liveStore.hasAnyKey && !root.keysMenuOpen
-              text: liveStore ? (liveStore.keysHint || "add a key under Keys below") : "add a key under Keys below"
+              text: liveStore ? (liveStore.keysHint || "add ZoomInfo Client ID + Secret under Keys") : "add ZoomInfo Client ID + Secret under Keys"
               color: root.ypYellow
               opacity: 0.75
               font.family: root.contentFontFamily
@@ -288,12 +283,23 @@ Panel {
                 anchors.margins: Style.space(12)
                 spacing: Style.space(10)
 
-                // LeadMagic API key
+                // Always-visible help when Keys open
+                Text {
+                  width: parent.width
+                  text: "ZoomInfo GTM Studio → Custom Apps → Create → Client Credentials. Scopes: Data + GTM (at least). Enricherino mints Bearer tokens for you — never paste a Bearer."
+                  color: root.contentForeground
+                  opacity: 0.45
+                  font.family: root.contentFontFamily
+                  font.pixelSize: Style.font.caption
+                  wrapMode: Text.WordWrap
+                }
+
+                // ZoomInfo Client ID
                 Column {
                   width: parent.width
                   spacing: Style.space(4)
                   Text {
-                    text: "LeadMagic API key"
+                    text: "Client ID"
                     color: root.contentForeground
                     opacity: 0.55
                     font.family: root.contentFontFamily
@@ -307,7 +313,7 @@ Panel {
                     border.width: 1
                     border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
                     TextInput {
-                      id: leadmagicEdit
+                      id: clientIdEdit
                       anchors.fill: parent
                       anchors.leftMargin: Style.space(10)
                       anchors.rightMargin: Style.space(10)
@@ -315,19 +321,19 @@ Panel {
                       color: root.contentForeground
                       font.family: root.contentFontFamily
                       font.pixelSize: Style.font.bodySmall
-                      echoMode: TextInput.Password
+                      echoMode: TextInput.Normal
                       selectByMouse: true
                       clip: true
-                      text: liveStore ? liveStore.leadmagicApiKey : ""
+                      text: liveStore ? liveStore.zoominfoClientId : ""
                       onTextChanged: {
                         if (!liveStore) return
-                        if (text === liveStore.leadmagicApiKey) return
-                        root.persistSetting("leadmagicApiKey", text)
+                        if (text === liveStore.zoominfoClientId) return
+                        root.persistSetting("zoominfoClientId", text)
                       }
                       Text {
                         anchors.fill: parent
-                        visible: !leadmagicEdit.text.length
-                        text: "LeadMagic API key"
+                        visible: !clientIdEdit.text.length
+                        text: "ZoomInfo Client ID"
                         color: root.contentForeground
                         opacity: 0.32
                         font.family: root.contentFontFamily
@@ -338,12 +344,12 @@ Panel {
                   }
                 }
 
-                // ZoomInfo bearer
+                // ZoomInfo Client Secret
                 Column {
                   width: parent.width
                   spacing: Style.space(4)
                   Text {
-                    text: "ZoomInfo bearer"
+                    text: "Client Secret"
                     color: root.contentForeground
                     opacity: 0.55
                     font.family: root.contentFontFamily
@@ -357,7 +363,7 @@ Panel {
                     border.width: 1
                     border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
                     TextInput {
-                      id: zoominfoEdit
+                      id: clientSecretEdit
                       anchors.fill: parent
                       anchors.leftMargin: Style.space(10)
                       anchors.rightMargin: Style.space(10)
@@ -368,73 +374,21 @@ Panel {
                       echoMode: TextInput.Password
                       selectByMouse: true
                       clip: true
-                      text: liveStore ? liveStore.zoominfoBearerToken : ""
+                      text: liveStore ? liveStore.zoominfoClientSecret : ""
                       onTextChanged: {
                         if (!liveStore) return
-                        if (text === liveStore.zoominfoBearerToken) return
-                        root.persistSetting("zoominfoBearerToken", text)
+                        if (text === liveStore.zoominfoClientSecret) return
+                        root.persistSetting("zoominfoClientSecret", text)
                       }
                       Text {
                         anchors.fill: parent
-                        visible: !zoominfoEdit.text.length
-                        text: "ZoomInfo bearer"
+                        visible: !clientSecretEdit.text.length
+                        text: "ZoomInfo Client Secret"
                         color: root.contentForeground
                         opacity: 0.32
                         font.family: root.contentFontFamily
                         font.pixelSize: Style.font.bodySmall
                         verticalAlignment: Text.AlignVCenter
-                      }
-                    }
-                  }
-                }
-
-                // Provider mode — three small buttons (schema enum)
-                Column {
-                  width: parent.width
-                  spacing: Style.space(4)
-                  Text {
-                    text: "Provider mode"
-                    color: root.contentForeground
-                    opacity: 0.55
-                    font.family: root.contentFontFamily
-                    font.pixelSize: Style.font.caption
-                  }
-                  Row {
-                    spacing: Style.space(6)
-                    Repeater {
-                      model: ["leadmagic", "zoominfo", "waterfall"]
-                      delegate: Rectangle {
-                        required property string modelData
-                        width: modeLabel.implicitWidth + Style.space(12)
-                        height: Style.space(24)
-                        radius: 6
-                        readonly property bool selected: liveStore
-                          && liveStore.normalizeProvider(liveStore.providerMode) === modelData
-                        color: selected
-                          ? Qt.rgba(root.ypYellow.r, root.ypYellow.g, root.ypYellow.b, 0.28)
-                          : (modeMa.containsMouse
-                            ? Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
-                            : Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.06))
-                        border.width: 1
-                        border.color: selected
-                          ? Qt.rgba(root.ypYellow.r, root.ypYellow.g, root.ypYellow.b, 0.5)
-                          : Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
-                        Text {
-                          id: modeLabel
-                          anchors.centerIn: parent
-                          text: modelData
-                          color: root.contentForeground
-                          font.family: root.contentFontFamily
-                          font.pixelSize: Style.font.caption
-                          font.bold: parent.selected
-                        }
-                        MouseArea {
-                          id: modeMa
-                          anchors.fill: parent
-                          hoverEnabled: true
-                          cursorShape: Qt.PointingHandCursor
-                          onClicked: root.setProviderMode(modelData)
-                        }
                       }
                     }
                   }
@@ -442,7 +396,7 @@ Panel {
 
                 Text {
                   width: parent.width
-                  text: "Keys stored in Omarchy bar settings (plaintext). CLI: omarchy bar set kenhara.enricherino leadmagicApiKey '…'"
+                  text: "Keys stored in Omarchy bar settings (plaintext). CLI: omarchy bar set kenhara.enricherino zoominfoClientId '…'"
                   color: root.contentForeground
                   opacity: 0.4
                   font.family: root.contentFontFamily
@@ -674,7 +628,7 @@ Panel {
           // Quiet footer
           Text {
             width: parent.width
-            text: "unofficial · waterfall under the hood · not a sequencer"
+            text: "unofficial · ZoomInfo · not a sequencer"
             color: root.contentForeground
             opacity: 0.22
             font.family: root.contentFontFamily
