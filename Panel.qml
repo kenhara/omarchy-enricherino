@@ -84,17 +84,27 @@ Panel {
     root.keysMenuInitialized = true
   }
 
-  function persistSetting(key, value) {
+  // Keys go to ~/.config/enricherino/credentials.json — never shell.json / bar settings.
+  function persistKeys() {
     if (!liveStore) return
-    var opts = ({})
-    opts[key] = value
-    liveStore.applySettings(opts)
-    // Mirror into bar settings so shell.json / `omarchy bar set` stay durable.
-    if (hostWidget && typeof hostWidget.mirrorSettingsKey === "function")
-      hostWidget.mirrorSettingsKey(key, value)
-    else if (hostWidget && hostWidget.settings) {
-      try { hostWidget.settings[key] = value } catch (e) {}
-    }
+    liveStore.setKeys(
+      liveStore.zoominfoClientId,
+      liveStore.zoominfoClientSecret
+    )
+  }
+
+  function onClientIdEdited(text) {
+    if (!liveStore) return
+    if (text === liveStore.zoominfoClientId) return
+    liveStore.zoominfoClientId = text
+    root.persistKeys()
+  }
+
+  function onClientSecretEdited(text) {
+    if (!liveStore) return
+    if (text === liveStore.zoominfoClientSecret) return
+    liveStore.zoominfoClientSecret = text
+    root.persistKeys()
   }
 
   readonly property int panelBaseHeight: Style.space(root.keysMenuOpen ? 900 : 680)
@@ -325,11 +335,7 @@ Panel {
                       selectByMouse: true
                       clip: true
                       text: liveStore ? liveStore.zoominfoClientId : ""
-                      onTextChanged: {
-                        if (!liveStore) return
-                        if (text === liveStore.zoominfoClientId) return
-                        root.persistSetting("zoominfoClientId", text)
-                      }
+                      onTextChanged: root.onClientIdEdited(text)
                       Text {
                         anchors.fill: parent
                         visible: !clientIdEdit.text.length
@@ -375,11 +381,7 @@ Panel {
                       selectByMouse: true
                       clip: true
                       text: liveStore ? liveStore.zoominfoClientSecret : ""
-                      onTextChanged: {
-                        if (!liveStore) return
-                        if (text === liveStore.zoominfoClientSecret) return
-                        root.persistSetting("zoominfoClientSecret", text)
-                      }
+                      onTextChanged: root.onClientSecretEdited(text)
                       Text {
                         anchors.fill: parent
                         visible: !clientSecretEdit.text.length
@@ -396,7 +398,7 @@ Panel {
 
                 Text {
                   width: parent.width
-                  text: "Keys stored in Omarchy bar settings (plaintext). CLI: omarchy bar set kenhara.enricherino zoominfoClientId '…'"
+                  text: "Saved under ~/.config/enricherino/credentials.json (mode 0600). Not written to Omarchy bar settings."
                   color: root.contentForeground
                   opacity: 0.4
                   font.family: root.contentFontFamily

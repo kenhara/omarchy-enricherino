@@ -10,16 +10,28 @@ Delight in ≤10 seconds. ZoomInfo under the hood. Unofficial.
 **ID:** `kenhara.enricherino`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.3.0
+**Version:** 0.3.1
+
+### 0.3.1
+- **ZoomInfo enrich body fix.** Correct GTM Data API `ContactEnrich` shape:
+  `data` is an object; `matchPersonInput` + `outputFields` under `attributes`
+  (was wrongly sending a `data[]` array + top-level `outputFields` → HTTP 400
+  Invalid field type). Criteria: `emailAddress` only (not also `email`);
+  profile → `externalURL`; include `id` in outputFields. Richer
+  `errors[].detail` in failure messages.
+- **No plaintext bar secrets.** Client ID + Secret live in
+  `~/.config/enricherino/credentials.json` (dir 0700, file 0600) via
+  `scripts/save_credentials.py` (stdin JSON). Not written to Omarchy bar
+  settings / `shell.json`. Schema keys removed. One-shot migrate from leftover
+  bar settings → file, then clear settings fields. Env still wins for CLI smoke.
 
 ### 0.3.0
 - **ZoomInfo only.** Drop LeadMagic, waterfall, and `providerMode`. Keys UI takes
   **Client ID** + **Client Secret** (password echo). Enricherino auto-mints Bearer
   via `POST …/gtm/oauth/v1/token` (client_credentials) and caches
   `~/.cache/enricherino/zi_token.json` (~60s early expiry). Never store
-  `access_token` in schema. Paste once under Keys — survives reload via
-  `persistSetting` / `mirrorSettingsKey`. Empty-state: *add ZoomInfo Client ID +
-  Secret under Keys*.
+  `access_token` in schema. Empty-state: *add ZoomInfo Client ID + Secret under
+  Keys*. (0.3.1 moved durable storage off shell.json.)
 
 ### 0.2.13
 - In-panel **Keys** disclosure (LeadMagic / ZoomInfo / provider mode) — Omarchy has no widget-settings GUI; mirrors into bar settings for `omarchy bar set` / shell.json. Honest empty-state copy. Tintable FA search bar glyph `\uf002` (caption).
@@ -138,7 +150,8 @@ omarchy-shell shell rescanPlugins
 
 ## Configure keys
 
-Omarchy has **no widget-settings GUI**. Set credentials in-panel or via CLI / `shell.json`.
+Omarchy has **no widget-settings GUI**. Paste credentials once under in-panel
+**Keys** — they are saved to a private file, **not** to bar settings / `shell.json`.
 
 ### 1) In-panel Keys (preferred)
 
@@ -149,41 +162,45 @@ Open Enricherino → expand **Keys ▾**:
 3. Paste **Client ID** + **Client Secret** (password echo) into Keys
 
 Enricherino **mints Bearer tokens for you** — never paste a Bearer. Edits write
-into the store and mirror to bar settings so they survive reload. Without both
-fields, Keys expands by default and the empty-state says **add ZoomInfo Client
-ID + Secret under Keys**.
+to `~/.config/enricherino/credentials.json` (directory mode **0700**, file mode
+**0600**) via `scripts/save_credentials.py` (stdin JSON one-shot). **Not**
+mirrored to Omarchy bar settings. Without both fields, Keys expands by default
+and the empty-state says **add ZoomInfo Client ID + Secret under Keys**.
 
-### 2) CLI (`omarchy bar set`)
+Upgrading from 0.3.0: if Client ID/Secret were previously in bar settings, the
+panel migrates them into the credentials file once and best-effort clears the
+old settings fields. Re-paste under Keys if FIND still says keys are missing.
+
+### 2) Credentials file (manual)
 
 ```sh
-omarchy bar set kenhara.enricherino zoominfoClientId '…'
-omarchy bar set kenhara.enricherino zoominfoClientSecret '…'
+mkdir -p ~/.config/enricherino && chmod 700 ~/.config/enricherino
+python3 scripts/save_credentials.py <<'EOF'
+{"zoominfoClientId":"…","zoominfoClientSecret":"…"}
+EOF
 ```
 
-### 3) `~/.config/omarchy/shell.json`
+Shape: `{"zoominfoClientId":"…","zoominfoClientSecret":"…"}`.
 
-Edit the Enricherino bar layout entry settings (`zoominfoClientId`,
-`zoominfoClientSecret`), then reload the shell.
-
-| Schema key | Label | Env passed to script |
-|------------|-------|----------------------|
-| `zoominfoClientId` | ZoomInfo Client ID | `ZOOMINFO_CLIENT_ID` |
-| `zoominfoClientSecret` | ZoomInfo Client Secret | `ZOOMINFO_CLIENT_SECRET` |
-
-**Do not commit real credentials.** Defaults are empty strings. Keys live in
-Omarchy bar settings **plaintext**. At lookup time they are passed via
-`Process.environment` (not argv) for that one call only — **never** written to
-the result cache. Minted access tokens are cached separately at
-`~/.cache/enricherino/zi_token.json` (chmod 600 best-effort; expire ~60s early).
-Leftover `zoominfoBearerToken` / LeadMagic settings are ignored.
-
-CLI smoke (optional):
+### 3) Env (CLI smoke only — env wins over the file)
 
 ```sh
 export ZOOMINFO_CLIENT_ID='…'
 export ZOOMINFO_CLIENT_SECRET='…'
 python3 scripts/lookup.py --mode email --json '{"email":"a@b.com"}'
 ```
+
+| Source | Used when |
+|--------|-----------|
+| `ZOOMINFO_CLIENT_ID` / `ZOOMINFO_CLIENT_SECRET` | Set in the process environment (panel injects these for FIND; CLI smoke) |
+| `~/.config/enricherino/credentials.json` | Env empty — durable store for the bar widget |
+
+**Do not commit real credentials.** Do **not** put Client Secret in
+`omarchy bar set` / `shell.json` (plaintext). At lookup time keys are passed via
+`Process.environment` (not argv) for that one call — **never** written to the
+result cache. Minted access tokens are cached separately at
+`~/.cache/enricherino/zi_token.json` (chmod 600 best-effort; expire ~60s early).
+Leftover `zoominfoBearerToken` / LeadMagic / old schema keys are ignored.
 
 ## Usage
 
@@ -230,7 +247,7 @@ Single provider path: **ZoomInfo GTM** contact enrich.
 
 | Mode | ZoomInfo |
 |------|----------|
-| Email | Contact enrich `email` / `emailAddress` |
+| Email | Contact enrich `emailAddress` (matchPersonInput) |
 | Profile URL (LinkedIn **or** X/Twitter) | enrich `externalURL` |
 | Name + company | enrich `fullName`+`companyName` |
 | Phone | enrich `phone` |
@@ -241,10 +258,11 @@ Single provider path: **ZoomInfo GTM** contact enrich.
 omarchy plugin remove kenhara.enricherino
 ```
 
-Optional cache cleanup:
+Optional cleanup:
 
 ```sh
 rm -rf ~/.cache/enricherino
+rm -rf ~/.config/enricherino
 ```
 
 ## Network
@@ -252,31 +270,38 @@ rm -rf ~/.cache/enricherino
 - Token: `POST https://api.zoominfo.com/gtm/oauth/v1/token` (`grant_type=client_credentials`)
 - Enrich: `POST https://api.zoominfo.com/gtm/data/v1/contacts/enrich`
 
-Outbound HTTPS only when you click FIND. Credentials stay in Omarchy bar settings /
-process env for that one call — never written into the repo or the result cache.
+Outbound HTTPS only when you click FIND. Credentials live in
+`~/.config/enricherino/credentials.json` and are injected via process env for
+that one call — never written into the repo, bar settings, or the result cache.
 User-Agent: `Enricherino/<manifest version> (Omarchy unofficial; kenhara.enricherino)`.
 
+Credentials: `~/.config/enricherino/credentials.json` (0600).
 Cache (last **successful** lookup only): `~/.cache/enricherino/last.json`.
 Token cache: `~/.cache/enricherino/zi_token.json`.
 
 ## Scripts
 
-`scripts/lookup.py` — urllib only, no extra deps.
+`scripts/lookup.py` — urllib only, no extra deps.  
+`scripts/save_credentials.py` — writes credentials.json (0600) from stdin JSON.
 
 ```sh
 python3 scripts/lookup.py --help
 python3 scripts/lookup.py --mode email|profile|name_company|phone --json '{…}'
+python3 scripts/save_credentials.py <<'EOF'
+{"zoominfoClientId":"…","zoominfoClientSecret":"…"}
+EOF
 ```
 
 ## Layout
 
 ```
-manifest.json          # kenhara.enricherino @ 0.3.0
+manifest.json          # kenhara.enricherino @ 0.3.1
 BarWidget.qml          # bar entry + Loader → Panel; middle-click clear
 Panel.qml              # paste + FIND + Keys + contact card
-YellowStore.qml        # pasteInput, detectMode, findFromPaste, cache, lookup
+YellowStore.qml        # pasteInput, detectMode, findFromPaste, cache, lookup, credentials
 qmldir
 scripts/lookup.py
+scripts/save_credentials.py
 docs/preview/index.html
 preview.svg
 preview.png
@@ -289,11 +314,12 @@ README.md
 
 ## Security baseline
 
-- Credentials live in **Omarchy bar settings as plaintext** (in-panel Keys,
-  `omarchy bar set`, or shell.json). Injected via `Process.environment` for a
-  single `lookup.py` run — **not** in argv. **Never** persisted to the result
-  cache or the repo. Access tokens are minted at runtime and cached only under
-  `~/.cache/enricherino/zi_token.json` — **not** in schema.
+- Credentials live in **`~/.config/enricherino/credentials.json`** (dir **0700**,
+  file **0600**), written by `scripts/save_credentials.py` from in-panel Keys
+  (stdin JSON). **Not** stored in Omarchy bar settings / `shell.json`. Injected
+  via `Process.environment` for a single `lookup.py` run — **not** in argv.
+  **Never** persisted to the result cache or the repo. Access tokens are minted
+  at runtime and cached only under `~/.cache/enricherino/zi_token.json`.
 - Cache stores the last successful result card — no Client Secret / access tokens.
 - Outbound HTTPS only on explicit FIND. No auto-fire on panel open or middle-click.
 - MIT at repo root. Unofficial — not affiliated with ZoomInfo or GTM.AI.

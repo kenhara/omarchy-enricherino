@@ -22,22 +22,13 @@ BarWidget {
   // Warm yellow accent for the joke yellow-pages vibe (falls back if theme lacks it)
   readonly property color ypAccent: Qt.rgba(1.0, 0.86, 0.28, 1.0)
 
-  property string zoominfoClientId: {
+  // Legacy bar-settings keys (plaintext shell.json) — read only for one-shot migrate.
+  function legacySetting(key) {
     try {
-      if (root.settings && root.settings.zoominfoClientId !== undefined)
-        return String(root.settings.zoominfoClientId)
+      if (root.settings && root.settings[key] !== undefined)
+        return String(root.settings[key] || "")
       if (typeof root.setting === "function")
-        return String(root.setting("zoominfoClientId", ""))
-    } catch (e) {}
-    return ""
-  }
-
-  property string zoominfoClientSecret: {
-    try {
-      if (root.settings && root.settings.zoominfoClientSecret !== undefined)
-        return String(root.settings.zoominfoClientSecret)
-      if (typeof root.setting === "function")
-        return String(root.setting("zoominfoClientSecret", ""))
+        return String(root.setting(key, "") || "")
     } catch (e) {}
     return ""
   }
@@ -83,15 +74,7 @@ BarWidget {
     if ("store" in target) target.store = yellowStore
   }
 
-  function syncStoreSettings() {
-    yellowStore.applySettings({
-      zoominfoClientId: root.zoominfoClientId,
-      zoominfoClientSecret: root.zoominfoClientSecret
-    })
-  }
-
-  // Best-effort write-back into mutable settings (Compliantish mirrorSettingsEnable).
-  // Keeps `omarchy bar set` / shell.json durable across reload.
+  // Best-effort clear of leftover plaintext keys in shell.json after migrate.
   function mirrorSettingsKey(key, value) {
     if (!root.settings) return
     try {
@@ -99,20 +82,36 @@ BarWidget {
     } catch (e) {}
   }
 
+  function clearLegacyKeySettings() {
+    root.mirrorSettingsKey("zoominfoClientId", "")
+    root.mirrorSettingsKey("zoominfoClientSecret", "")
+  }
+
+  function tryMigrateLegacyKeys() {
+    if (!yellowStore.credentialsLoaded) return
+    yellowStore.migrateFromBarSettings(
+      root.legacySetting("zoominfoClientId"),
+      root.legacySetting("zoominfoClientSecret"),
+      root.clearLegacyKeySettings
+    )
+  }
+
   onBarChanged: injectPanel()
   onSettingsChanged: {
     injectPanel()
-    syncStoreSettings()
+    root.tryMigrateLegacyKeys()
   }
-  onZoominfoClientIdChanged: syncStoreSettings()
-  onZoominfoClientSecretChanged: syncStoreSettings()
 
   YellowStore {
     id: yellowStore
+    onCredentialsLoadedChanged: {
+      if (yellowStore.credentialsLoaded)
+        root.tryMigrateLegacyKeys()
+    }
   }
 
   Component.onCompleted: {
-    syncStoreSettings()
+    root.tryMigrateLegacyKeys()
   }
 
   property string panelLoadError: ""

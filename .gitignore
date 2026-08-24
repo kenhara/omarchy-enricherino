@@ -35,5 +35,8 @@ docs/preview/dist/
 .env
 .env.*
 *.pem
+# Local credential dumps — but keep the saver script tracked
 *credentials*
+!*save_credentials.py
 *secret*
+!*save_credentials.py

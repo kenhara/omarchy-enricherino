@@ -1,6 +1,6 @@
 # Enricherino — design notes
 
-**Status:** 0.3.0 (ZoomInfo-only Client Credentials)  
+**Status:** 0.3.1 (ZoomInfo enrich body fix + file credentials)  
 **Id:** `kenhara.enricherino`  
 **Peers:** Compliantish, Rocketlauncher, Encyclopedic, Scriptural
 
@@ -16,7 +16,7 @@ follow-up contact via ZoomInfo GTM.
 |--------|--------|
 | `bar-widget` + nested `Panel.qml` | Same — no separate panel kind |
 | Theme tokens (`Color` / `Style` / `bar.foreground`) | Yellow accent on title + FIND |
-| Schema knobs early | Client ID + Client Secret only |
+| Credentials file | `~/.config/enricherino/credentials.json` (0600); not shell.json |
 | Honest empty/error | One-liner keys hint; toast on miss |
 | Ship extras | `preview.png`, Remove / Security baseline / Controls |
 | Cache last success | `~/.cache/enricherino/last.json` (never secrets) |
@@ -30,13 +30,13 @@ FA search `\uf002` — left click toggles panel. Tooltip: *Enricherino — look 
 middle: clear*. Middle click clears last result / cache (does **not** auto-lookup).
 Right-click unused.
 
-## Panel (0.3.0)
+## Panel (0.3.1)
 
 1. Big **ENRICHERINO** (letter-spacing) + *look somebody up*
 2. One multiline/paste field
 3. Huge yellow **FIND**
 4. Tiny detected-mode hint under the field
-5. In-panel Keys: Client ID + Client Secret + create-app help; expands if missing
+5. In-panel Keys: Client ID + Client Secret → credentials.json (0600); expands if missing
 6. Contact card: name big, title · company, email/phone/LinkedIn/X + Copy, **Copy card**
 7. Quiet footer: unofficial · ZoomInfo · not a sequencer
 
@@ -46,6 +46,7 @@ Right-click unused.
 
 - **zoominfo** — Client Credentials → mint Bearer → GTM `contacts/enrich`
 - Token cache: `~/.cache/enricherino/zi_token.json` (expire ~60s early)
+- Credentials: `~/.config/enricherino/credentials.json` (dir 0700, file 0600)
 
 ## Non-goals
 

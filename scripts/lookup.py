@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Enricherino — individual contact lookup via ZoomInfo GTM.
 
-CLI for Omarchy bar-widget. Reads credentials from env:
-  ZOOMINFO_CLIENT_ID
-  ZOOMINFO_CLIENT_SECRET
+CLI for Omarchy bar-widget. Credentials (env wins over file):
+  ZOOMINFO_CLIENT_ID / ZOOMINFO_CLIENT_SECRET
+  or ~/.config/enricherino/credentials.json (mode 0600)
 
 Mints a Bearer via client_credentials (cached under ~/.cache/enricherino/zi_token.json).
-Never stores access_token in schema. User-Agent version from manifest.json.
+Never stores access_token in schema / shell.json. User-Agent version from manifest.json.
 Not for blast outbound. Unofficial client.
 """
 from __future__ import annotations
@@ -28,6 +28,7 @@ ZOOMINFO_TOKEN = "https://api.zoominfo.com/gtm/oauth/v1/token"
 ZOOMINFO_ENRICH = "https://api.zoominfo.com/gtm/data/v1/contacts/enrich"
 PLUGIN_ID = "kenhara.enricherino"
 TOKEN_CACHE_PATH = Path.home() / ".cache" / "enricherino" / "zi_token.json"
+CREDENTIALS_PATH = Path.home() / ".config" / "enricherino" / "credentials.json"
 TOKEN_SKEW_SEC = 60
 
 
@@ -40,7 +41,7 @@ def read_manifest_version() -> str:
             return ver
     except Exception:
         pass
-    return "0.3.0"
+    return "0.3.1"
 
 
 VERSION = read_manifest_version()
@@ -243,21 +244,64 @@ def extract_urls_from_obj(obj: Any) -> tuple[str | None, str | None, str | None]
 
 
 def zi_error_message(code: int, payload: Any) -> str:
+    """Surface API errors[].detail fully for debug (not just the first title)."""
     if code in (401, 403):
+        # Still attach detail when present — helps distinguish bad secret vs scope.
+        detail = _zi_errors_detail(payload)
+        if detail:
+            return f"ZoomInfo credentials rejected: {detail}"
         return "ZoomInfo credentials rejected"
     if isinstance(payload, dict):
-        errs = payload.get("errors")
-        if isinstance(errs, list) and errs:
-            e0 = errs[0]
-            if isinstance(e0, dict):
-                return f"ZoomInfo HTTP {code}: {e0.get('detail') or e0.get('title') or e0}"
-            return f"ZoomInfo HTTP {code}: {e0}"
+        detail = _zi_errors_detail(payload)
+        if detail:
+            return f"ZoomInfo HTTP {code}: {detail}"
         for k in ("message", "error", "detail", "error_description"):
             if payload.get(k):
                 return f"ZoomInfo HTTP {code}: {payload[k]}"
+        raw = payload.get("_raw")
+        if isinstance(raw, str) and raw.strip():
+            snippet = raw.strip().replace("\n", " ")
+            if len(snippet) > 400:
+                snippet = snippet[:397] + "…"
+            return f"ZoomInfo HTTP {code}: {snippet}"
     if code == 0:
         return f"ZoomInfo network error: {payload}"
     return f"ZoomInfo HTTP {code}"
+
+
+def _zi_errors_detail(payload: Any) -> str | None:
+    if not isinstance(payload, dict):
+        return None
+    errs = payload.get("errors")
+    if not isinstance(errs, list) or not errs:
+        return None
+    parts: list[str] = []
+    for e in errs:
+        if isinstance(e, dict):
+            # Prefer detail; include title/code when detail alone is thin.
+            detail = e.get("detail")
+            title = e.get("title")
+            code_s = e.get("code") or e.get("status")
+            if detail is not None and str(detail).strip():
+                bit = str(detail).strip()
+                extras = []
+                if title and str(title).strip() and str(title).strip() not in bit:
+                    extras.append(str(title).strip())
+                if code_s is not None and str(code_s).strip():
+                    extras.append(f"code={code_s}")
+                if extras:
+                    bit = f"{bit} ({'; '.join(extras)})"
+                parts.append(bit)
+            elif title is not None and str(title).strip():
+                parts.append(str(title).strip())
+            else:
+                try:
+                    parts.append(json.dumps(e, ensure_ascii=False))
+                except Exception:
+                    parts.append(str(e))
+        else:
+            parts.append(str(e))
+    return " | ".join(parts) if parts else None
 
 
 def load_cached_token() -> str | None:
@@ -412,7 +456,7 @@ def zoominfo_attrs_for_mode(mode: str, inputs: dict[str, Any]) -> dict[str, Any]
         email = pick(inputs.get("email"), inputs.get("work_email"))
         if not email:
             return None
-        return {"email": email, "emailAddress": email}
+        return {"emailAddress": email}
     if mode == "profile":
         purl = normalize_profile_url(pick(inputs.get("profile_url"), inputs.get("url")))
         if not purl:
@@ -464,7 +508,8 @@ def zoominfo_lookup(
     out["provider"] = "zoominfo"
     if not client_id or not client_secret:
         out["errors"].append(
-            "ZoomInfo Client ID + Secret missing — add them under Keys below (or omarchy bar set)"
+            "ZoomInfo Client ID + Secret missing — add them under Keys "
+            "(saved to ~/.config/enricherino/credentials.json)"
         )
         return
     token = mint_zoominfo_token(client_id, client_secret, out)
@@ -474,18 +519,26 @@ def zoominfo_lookup(
     if not attrs:
         out["errors"].append(f"insufficient inputs for ZoomInfo mode={mode}")
         return
+    # GTM Data API ContactEnrich shape (docs.zoominfo.com Enrich Contacts):
+    # data is an object (not array); matchPersonInput + outputFields live under attributes.
     body = {
-        "data": [{"type": "ContactEnrich", "attributes": attrs}],
-        "outputFields": [
-            "firstName",
-            "lastName",
-            "jobTitle",
-            "email",
-            "phone",
-            "mobilePhone",
-            "companyName",
-            "externalUrls",
-        ],
+        "data": {
+            "type": "ContactEnrich",
+            "attributes": {
+                "matchPersonInput": [attrs],
+                "outputFields": [
+                    "id",
+                    "firstName",
+                    "lastName",
+                    "email",
+                    "jobTitle",
+                    "phone",
+                    "mobilePhone",
+                    "companyName",
+                    "externalUrls",
+                ],
+            },
+        }
     }
     headers = {
         "Authorization": f"Bearer {token}",
@@ -539,11 +592,45 @@ def has_enriched_result(out: dict[str, Any]) -> bool:
     return False
 
 
+def load_file_credentials() -> tuple[str, str]:
+    """Load Client ID/Secret from ~/.config/enricherino/credentials.json if present."""
+    try:
+        if not CREDENTIALS_PATH.is_file():
+            return "", ""
+        data = json.loads(CREDENTIALS_PATH.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            return "", ""
+        cid = str(
+            data.get("zoominfoClientId")
+            or data.get("client_id")
+            or data.get("clientId")
+            or ""
+        ).strip()
+        csec = str(
+            data.get("zoominfoClientSecret")
+            or data.get("client_secret")
+            or data.get("clientSecret")
+            or ""
+        ).strip()
+        return cid, csec
+    except Exception:
+        return "", ""
+
+
+def resolve_credentials() -> tuple[str, str]:
+    """Env wins (CLI smoke); otherwise credentials.json."""
+    cid = os.environ.get("ZOOMINFO_CLIENT_ID", "").strip()
+    csec = os.environ.get("ZOOMINFO_CLIENT_SECRET", "").strip()
+    if cid and csec:
+        return cid, csec
+    file_cid, file_csec = load_file_credentials()
+    return cid or file_cid, csec or file_csec
+
+
 def run(mode: str, inputs: dict[str, Any]) -> dict[str, Any]:
     out = empty_result()
     out["mode"] = mode
-    client_id = os.environ.get("ZOOMINFO_CLIENT_ID", "").strip()
-    client_secret = os.environ.get("ZOOMINFO_CLIENT_SECRET", "").strip()
+    client_id, client_secret = resolve_credentials()
     zoominfo_lookup(mode, inputs, client_id, client_secret, out)
     rejected = any("rejected" in e.lower() for e in out["errors"])
     out["ok"] = has_enriched_result(out) and not rejected

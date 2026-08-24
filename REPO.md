@@ -10,4 +10,5 @@ omarchy plugin add https://github.com/kenhara/omarchy-enricherino.git --enable
 omarchy bar move kenhara.enricherino --section right
 ```
 
+Credentials: `~/.config/enricherino/credentials.json` (0600).
 Cache (optional cleanup after remove): `~/.cache/enricherino/`.

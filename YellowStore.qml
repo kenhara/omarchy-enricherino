@@ -4,6 +4,7 @@ import Quickshell.Io
 
 // Enricherino — runs scripts/lookup.py via Process; parses JSON stdout.
 // Individual follow-up only. Not a sequencer.
+// Credentials: ~/.config/enricherino/credentials.json (0600) — never shell.json.
 // Caches last successful result to ~/.cache/enricherino/last.json (never secrets).
 Item {
   id: store
@@ -29,10 +30,18 @@ Item {
 
   readonly property string cacheDir: Quickshell.env("HOME") + "/.cache/enricherino"
   readonly property string cachePath: cacheDir + "/last.json"
+  readonly property string credDir: Quickshell.env("HOME") + "/.config/enricherino"
+  readonly property string credPath: credDir + "/credentials.json"
   readonly property string pluginDir: String(Qt.resolvedUrl("."))
     .replace(/^file:\/\//, "")
     .replace(/\/$/, "")
   readonly property string lookupPath: pluginDir + "/scripts/lookup.py"
+  readonly property string saveCredPath: pluginDir + "/scripts/save_credentials.py"
+
+  // Pending JSON for save_credentials.py stdin (one-shot; not mirrored to settings).
+  property string _pendingCredJson: ""
+  property bool credentialsLoaded: false
+  property bool credentialsMigrated: false
 
   // FA search (\uf002) — tintable via Text.color; color emoji is not
   readonly property string barGlyph: "\uf002"
@@ -69,11 +78,94 @@ Item {
   }
 
   function applySettings(opts) {
+    // In-memory only. Durable store is credentials.json — do not use for secrets.
     opts = opts || {}
     if (opts.zoominfoClientId !== undefined)
       store.zoominfoClientId = String(opts.zoominfoClientId || "")
     if (opts.zoominfoClientSecret !== undefined)
       store.zoominfoClientSecret = String(opts.zoominfoClientSecret || "")
+  }
+
+  function setKeys(clientId, clientSecret) {
+    store.zoominfoClientId = String(clientId || "")
+    store.zoominfoClientSecret = String(clientSecret || "")
+    store.scheduleSaveCredentials()
+  }
+
+  function scheduleSaveCredentials() {
+    credSaveTimer.restart()
+  }
+
+  function saveCredentialsNow() {
+    var payload = JSON.stringify({
+      zoominfoClientId: String(store.zoominfoClientId || ""),
+      zoominfoClientSecret: String(store.zoominfoClientSecret || "")
+    })
+    store._pendingCredJson = payload
+    if (saveCredProc.running) {
+      // Will re-run on exit if still pending.
+      return
+    }
+    saveCredProc.command = ["python3", "-B", store.saveCredPath]
+    saveCredProc.environment = ({ "PYTHONDONTWRITEBYTECODE": "1" })
+    saveCredProc.stdinEnabled = true
+    saveCredProc.running = true
+  }
+
+  function onSaveCredRunningChanged() {
+    if (!saveCredProc.running) return
+    var blob = store._pendingCredJson || ""
+    if (!blob.length) {
+      saveCredProc.stdinEnabled = false
+      return
+    }
+    try {
+      saveCredProc.write(blob)
+    } catch (e) {}
+    // Closing stdin (EOF) so the script finishes reading.
+    saveCredProc.stdinEnabled = false
+    store._pendingCredJson = ""
+  }
+
+  function applyCredentialsFile(text) {
+    try {
+      var obj = JSON.parse(text || "{}")
+      if (!obj || typeof obj !== "object") return false
+      var cid = String(obj.zoominfoClientId || obj.client_id || obj.clientId || "")
+      var csec = String(obj.zoominfoClientSecret || obj.client_secret || obj.clientSecret || "")
+      store.zoominfoClientId = cid
+      store.zoominfoClientSecret = csec
+      store.credentialsLoaded = true
+      return true
+    } catch (e) {
+      return false
+    }
+  }
+
+  function onCredentialsLoaded(text) {
+    if (text && String(text).length > 2)
+      store.applyCredentialsFile(text)
+    store.credentialsLoaded = true
+  }
+
+  // One-shot migrate: old bar settings → credentials.json, then clear settings fields.
+  function migrateFromBarSettings(cid, csec, clearFn) {
+    if (store.credentialsMigrated) return
+    store.credentialsMigrated = true
+    var fromFileId = String(store.zoominfoClientId || "").trim()
+    var fromFileSec = String(store.zoominfoClientSecret || "").trim()
+    var oldId = String(cid || "").trim()
+    var oldSec = String(csec || "").trim()
+    if (!oldId.length && !oldSec.length) return
+    // Prefer file if already populated; still clear leftover settings.
+    if (!fromFileId.length && !fromFileSec.length && (oldId.length || oldSec.length)) {
+      store.zoominfoClientId = oldId
+      store.zoominfoClientSecret = oldSec
+      store.saveCredentialsNow()
+    }
+    if (typeof clearFn === "function") {
+      try { clearFn() } catch (e) {}
+    }
   }
 
   function setInputMode(mode) {
@@ -474,6 +566,7 @@ Item {
 
   function bootstrap() {
     cacheFile.reload()
+    credFile.reload()
   }
 
   function onCacheLoaded(text) {
@@ -499,6 +592,51 @@ Item {
     printErrors: false
     onLoaded: store.onCacheLoaded(text())
     onLoadFailed: { /* first run — no cache yet */ }
+  }
+
+  FileView {
+    id: credFile
+    path: store.credPath
+    watchChanges: false
+    printErrors: false
+    onLoaded: store.onCredentialsLoaded(text())
+    onLoadFailed: {
+      store.credentialsLoaded = true
+    }
+  }
+
+  Timer {
+    id: credSaveTimer
+    interval: 350
+    repeat: false
+    onTriggered: store.saveCredentialsNow()
+  }
+
+  Process {
+    id: saveCredProc
+    running: false
+    stdinEnabled: true
+    onRunningChanged: store.onSaveCredRunningChanged()
+    stdout: SplitParser {
+      onRead: function(line) { /* ok json — intentionally quiet */ }
+    }
+    stderr: SplitParser {
+      onRead: function(line) {
+        var s = String(line || "")
+        if (s.length)
+          store.showToast("Keys save failed")
+      }
+    }
+    onExited: function(exitCode, exitStatus) {
+      if (exitCode === 0) {
+        // If keystrokes queued another save while we were writing, flush it.
+        // (Debounce timer still running will fire on its own.)
+        if (store._pendingCredJson && store._pendingCredJson.length)
+          store.saveCredentialsNow()
+      } else {
+        store.showToast("Keys save failed")
+      }
+    }
   }
 
   Process {
