@@ -135,7 +135,7 @@ BarWidget {
     id: button
     anchors.fill: parent
     bar: root.bar
-    text: yellowStore.barLabel || "● YP"
+    text: yellowStore.barLabel || "● ER"
     horizontalMargin: 8.5
     tooltipText: {
       var tip = "Enricherino — look somebody up · middle: clear"

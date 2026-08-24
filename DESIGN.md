@@ -32,7 +32,7 @@ Right-click unused.
 
 ## Panel (0.2.0+)
 
-1. Big **YELLOW PIXELS** (letter-spacing) + *look somebody up*
+1. Big **ENRICHERINO** (letter-spacing) + *look somebody up*
 2. One multiline/paste field
 3. Huge yellow **FIND**
 4. Tiny detected-mode hint under the field

@@ -109,13 +109,13 @@ Panel {
           NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
         }
 
-        // Header — big YELLOW PIXELS + one-line joke
+        // Header — big ENRICHERINO + one-line joke
         Column {
           width: parent.width
           spacing: Style.space(6)
 
           Text {
-            text: "YELLOW PIXELS"
+            text: "ENRICHERINO"
             color: root.ypYellow
             font.family: root.contentFontFamily
             font.pixelSize: Style.font.title
