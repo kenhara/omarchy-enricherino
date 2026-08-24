@@ -10,7 +10,10 @@ Delight in ≤10 seconds. Waterfall under the hood. Unofficial.
 **ID:** `kenhara.enricherino`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.2.8
+**Version:** 0.2.9
+
+### 0.2.9
+- python3 -B + PYTHONDONTWRITEBYTECODE on lookup Process (stops __pycache__ reload storms); panel load error console.warn + truncated tooltip.
 
 ### 0.2.8
 - Bar chip emoji 🔍 (glyph-only); Panel `import "."` so Loader resolves sibling types; best-effort panel load error in tooltip.

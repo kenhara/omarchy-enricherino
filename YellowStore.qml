@@ -345,6 +345,7 @@ Item {
     // clearEnvironment defaults false (inherit rest of env).
     lookupProc.command = [
       "python3",
+      "-B",
       store.lookupPath,
       "--provider", provider,
       "--mode", mode,
@@ -352,7 +353,8 @@ Item {
     ]
     lookupProc.environment = ({
       "LEADMAGIC_API_KEY": lm,
-      "ZOOMINFO_BEARER_TOKEN": zi
+      "ZOOMINFO_BEARER_TOKEN": zi,
+      "PYTHONDONTWRITEBYTECODE": "1"
     })
     lookupProc.running = true
   }

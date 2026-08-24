@@ -140,6 +140,7 @@ BarWidget {
             err = String(sourceComponent.errorString || "")
         } catch (e) {}
         root.panelLoadError = err.length ? err : "Panel.qml failed to load"
+        console.warn(moduleName + " panel load failed: " + root.panelLoadError)
       }
     }
   }
@@ -154,8 +155,12 @@ BarWidget {
       var tip = "Enricherino — look somebody up · middle: clear"
       if (yellowStore.loading)
         tip = "Enricherino — finding… · middle: clear"
-      if (root.panelLoadError && root.panelLoadError.length)
-        tip += " · panel load error — see console"
+      if (root.panelLoadError && root.panelLoadError.length) {
+        var pe = root.panelLoadError
+        if (pe.length > 120)
+          pe = pe.substring(0, 117) + "…"
+        tip += " · panel load error — " + pe
+      }
       return tip
     }
     onPressed: function(buttonCode) {
