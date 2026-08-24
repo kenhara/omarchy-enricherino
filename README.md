@@ -10,7 +10,10 @@ Delight in ≤10 seconds. ZoomInfo under the hood. Unofficial.
 **ID:** `kenhara.enricherino`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.3.6
+**Version:** 0.3.7
+
+### 0.3.7
+- Cache/credentials read rejects symlink/FIFO (O_NOFOLLOW|O_NONBLOCK + regular-file check).
 
 ### 0.3.6
 - Bound HTTP/file/stdin/QML reads (marketplace #2222).
@@ -305,7 +308,8 @@ Token cache: `~/.cache/enricherino/zi_token.json`.
 ## Scripts
 
 `scripts/lookup.py` — urllib only, no extra deps.  
-`scripts/save_credentials.py` — writes credentials.json (0600) from stdin JSON.
+`scripts/save_credentials.py` — writes credentials.json (0600) from stdin JSON.  
+`scripts/load-cache.py` — bounded trust-path read of last.json / credentials.json.
 
 ```sh
 python3 scripts/lookup.py --help
@@ -318,13 +322,14 @@ EOF
 ## Layout
 
 ```
-manifest.json          # kenhara.enricherino @ 0.3.6
+manifest.json          # kenhara.enricherino @ 0.3.7
 BarWidget.qml          # bar entry + Loader → Panel; middle-click clear
 Panel.qml              # header Keys lock + paste + FIND + contact card
 YellowStore.qml        # pasteInput, detectMode, findFromPaste, cache, lookup, credentials
 qmldir
 scripts/lookup.py
 scripts/save_credentials.py
+scripts/load-cache.py
 docs/preview/index.html
 preview.svg
 preview.png
@@ -344,6 +349,9 @@ README.md
   **Never** persisted to the result cache or the repo. Access tokens are minted
   at runtime and cached only under `~/.cache/enricherino/zi_token.json`.
 - Cache stores the last successful result card — no Client Secret / access tokens.
+  Reads of `last.json` and `credentials.json` go through `scripts/load-cache.py`
+  (`O_RDONLY|O_NOFOLLOW|O_NONBLOCK`, regular-file + size cap). FileView writes
+  only. `lookup.py` uses the same flags for `credentials.json` / `zi_token.json`.
 - Outbound HTTPS only on explicit FIND. No auto-fire on panel open or middle-click.
 - MIT at repo root. Unofficial — not affiliated with ZoomInfo or GTM.AI.
 

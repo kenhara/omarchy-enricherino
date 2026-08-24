@@ -46,3 +46,9 @@ bash -n scripts/lookup.py  # N/A for py; python3 -m py_compile scripts/lookup.py
 |----|---------|-----|
 | 2222 | Unbounded `resp.read()` / `HTTPError.read()`, `lookupBuf` accumulation, wholesale FileView of cache/credentials | Cap HTTP (4 MiB), file (1 MiB), stdin (64 KiB), QML lookup/file buffers (1 MiB); clamp helper stderr to 2048; 60s lookup watchdog. Oversize/absent → existing fallbacks. |
 
+## 0.3.7 / HC-05 (marketplace #2222)
+
+| ID | Severity | Fix |
+|----|----------|-----|
+| **HC-05** | HIGH | Stop FileView-reading `~/.cache/enricherino/last.json` and `~/.config/enricherino/credentials.json`. FileView `cacheFile` is writes-only (`preload: false`). Both reads go through one `scripts/load-cache.py` helper (`O_RDONLY|O_NOFOLLOW|O_NONBLOCK`, `fstat` S_ISREG, cap+1). `lookup.py` `read_text_capped` uses the same flags for credentials.json / zi_token.json (manifest stays a normal plugin-dir read). Symlink / FIFO / missing / not regular / oversize → exit 1, no body (cache: first-run; creds: `credentialsLoaded` + empty keys). Valid regular file → raw bytes, exit 0. Do not emit `{"cleared": true}` on success. |
+

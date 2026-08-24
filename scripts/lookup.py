@@ -15,6 +15,7 @@ import argparse
 import json
 import os
 import re
+import stat
 import sys
 import time
 import urllib.error
@@ -35,11 +36,36 @@ MAX_FILE_BYTES = 1 * 1024 * 1024   # 1 MiB
 
 
 def read_text_capped(path: Path, limit: int = MAX_FILE_BYTES) -> str | None:
+    """Bounded trust-path read: O_RDONLY|O_NOFOLLOW|O_NONBLOCK + S_ISREG.
+
+    Used for credentials.json and zi_token.json. Manifest stays a normal read.
+    """
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+    fd = -1
+    data = b""
     try:
-        with path.open("rb") as f:
-            data = f.read(limit + 1)
-        if len(data) > limit:
+        fd = os.open(os.fspath(path), flags)
+        st = os.fstat(fd)
+        if not stat.S_ISREG(st.st_mode):
             return None
+        remaining = limit + 1
+        while remaining > 0:
+            chunk = os.read(fd, min(65536, remaining))
+            if not chunk:
+                break
+            data += chunk
+            remaining -= len(chunk)
+    except Exception:
+        return None
+    finally:
+        if fd >= 0:
+            try:
+                os.close(fd)
+            except Exception:
+                pass
+    if len(data) > limit:
+        return None
+    try:
         return data.decode("utf-8", errors="replace")
     except Exception:
         return None
@@ -47,17 +73,16 @@ def read_text_capped(path: Path, limit: int = MAX_FILE_BYTES) -> str | None:
 
 def read_manifest_version() -> str:
     try:
+        # Plugin-dir manifest is not a user-writable trust path.
         manifest = Path(__file__).resolve().parent.parent / "manifest.json"
-        raw = read_text_capped(manifest)
-        if raw is None:
-            return "0.3.3"
+        raw = manifest.read_text(encoding="utf-8")
         data = json.loads(raw)
         ver = str(data.get("version") or "").strip()
         if ver:
             return ver
     except Exception:
         pass
-    return "0.3.3"
+    return "0.3.7"
 
 
 VERSION = read_manifest_version()

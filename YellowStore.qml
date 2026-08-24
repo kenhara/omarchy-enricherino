@@ -38,6 +38,7 @@ Item {
     .replace(/\/$/, "")
   readonly property string lookupPath: pluginDir + "/scripts/lookup.py"
   readonly property string saveCredPath: pluginDir + "/scripts/save_credentials.py"
+  readonly property string loadCachePath: pluginDir + "/scripts/load-cache.py"
   readonly property int maxLookupBytes: 1048576
   readonly property int maxFileBytes: 1048576
 
@@ -45,6 +46,10 @@ Item {
   property string _pendingCredJson: ""
   property bool credentialsLoaded: false
   property bool credentialsMigrated: false
+  property string cacheBuf: ""
+  property bool cacheOverflow: false
+  property string credBuf: ""
+  property bool credOverflow: false
 
   // FA user/head (\uf007) — tintable via Text.color; color emoji is not
   readonly property string barGlyph: "\uf007"
@@ -591,8 +596,12 @@ Item {
   }
 
   function bootstrap() {
-    cacheFile.reload()
-    credFile.reload()
+    store.cacheBuf = ""
+    store.cacheOverflow = false
+    store.credBuf = ""
+    store.credOverflow = false
+    cacheReadProc.running = true
+    credReadProc.running = true
   }
 
   function onCacheLoaded(text) {
@@ -633,18 +642,65 @@ Item {
     path: store.cachePath
     watchChanges: false
     printErrors: false
-    onLoaded: store.onCacheLoaded(text())
-    onLoadFailed: { /* first run — no cache yet */ }
+    preload: false
+    // Writes only (setText). Reads go through load-cache.py (O_NOFOLLOW|O_NONBLOCK).
   }
 
-  FileView {
-    id: credFile
-    path: store.credPath
-    watchChanges: false
-    printErrors: false
-    onLoaded: store.onCredentialsLoaded(text())
-    onLoadFailed: {
-      store.credentialsLoaded = true
+  Process {
+    id: cacheReadProc
+    running: false
+    command: ["python3", "-B", store.loadCachePath, "--file", store.cachePath, "--cap", String(store.maxFileBytes)]
+    environment: ({ "PYTHONDONTWRITEBYTECODE": "1" })
+    stdout: SplitParser {
+      splitMarker: ""
+      onRead: function(chunk) {
+        if (store.cacheOverflow) return
+        store.cacheBuf += chunk
+        if (store.cacheBuf.length > store.maxFileBytes) {
+          store.cacheOverflow = true
+          store.cacheBuf = ""
+          cacheReadProc.running = false
+        }
+      }
+    }
+    onExited: function(exitCode, exitStatus) {
+      var txt = store.cacheBuf
+      var over = store.cacheOverflow
+      store.cacheBuf = ""
+      store.cacheOverflow = false
+      if (over || exitCode !== 0)
+        return
+      store.onCacheLoaded(txt)
+    }
+  }
+
+  Process {
+    id: credReadProc
+    running: false
+    command: ["python3", "-B", store.loadCachePath, "--file", store.credPath, "--cap", String(store.maxFileBytes)]
+    environment: ({ "PYTHONDONTWRITEBYTECODE": "1" })
+    stdout: SplitParser {
+      splitMarker: ""
+      onRead: function(chunk) {
+        if (store.credOverflow) return
+        store.credBuf += chunk
+        if (store.credBuf.length > store.maxFileBytes) {
+          store.credOverflow = true
+          store.credBuf = ""
+          credReadProc.running = false
+        }
+      }
+    }
+    onExited: function(exitCode, exitStatus) {
+      var txt = store.credBuf
+      var over = store.credOverflow
+      store.credBuf = ""
+      store.credOverflow = false
+      if (over || exitCode !== 0) {
+        store.credentialsLoaded = true
+        return
+      }
+      store.onCredentialsLoaded(txt)
     }
   }
 
