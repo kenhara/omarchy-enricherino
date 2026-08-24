@@ -118,7 +118,7 @@ Panel {
             text: "ENRICHERINO"
             color: root.ypYellow
             font.family: root.contentFontFamily
-            font.pixelSize: Style.font.title
+            font.pixelSize: Style.font.body
             font.bold: true
             font.letterSpacing: 3.2
           }
@@ -154,7 +154,7 @@ Panel {
               anchors.margins: Style.space(10)
               color: root.contentForeground
               font.family: root.contentFontFamily
-              font.pixelSize: Style.font.subtitle
+              font.pixelSize: Style.font.body
               wrapMode: TextEdit.Wrap
               selectByMouse: true
               text: liveStore ? liveStore.pasteInput : ""
@@ -175,7 +175,7 @@ Panel {
                 color: root.contentForeground
                 opacity: 0.32
                 font.family: root.contentFontFamily
-                font.pixelSize: Style.font.subtitle
+                font.pixelSize: Style.font.body
                 wrapMode: Text.WordWrap
               }
             }
@@ -219,7 +219,7 @@ Panel {
             text: liveStore && liveStore.loading ? "FINDING…" : "FIND"
             color: Qt.rgba(0.08, 0.07, 0.04, 1)
             font.family: root.contentFontFamily
-            font.pixelSize: Style.font.title
+            font.pixelSize: Style.font.body
             font.bold: true
             font.letterSpacing: 2.4
           }
@@ -279,7 +279,7 @@ Panel {
               text: liveStore ? liveStore.fieldValue("name") : ""
               color: root.contentForeground
               font.family: root.contentFontFamily
-              font.pixelSize: Style.font.title
+              font.pixelSize: Style.font.body
               font.bold: true
               wrapMode: Text.WordWrap
             }
@@ -327,7 +327,7 @@ Panel {
                     text: liveStore ? liveStore.fieldValue(modelData.key) : ""
                     color: root.contentForeground
                     font.family: root.contentFontFamily
-                    font.pixelSize: Style.font.subtitle
+                    font.pixelSize: Style.font.body
                     wrapMode: Text.WrapAnywhere
                   }
                 }
