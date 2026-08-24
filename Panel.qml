@@ -182,34 +182,51 @@ Panel {
             NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
           }
 
-          // Header — ENRICHERINO + compact Keys lock (right of title)
+          // Header — person glyph + ENRICHERINO; Keys on their own row
           Column {
             width: parent.width
             spacing: Style.space(6)
 
-            Item {
-              width: parent.width
-              height: Math.max(titleText.implicitHeight, keysCtl.implicitHeight)
-
+            Row {
+              spacing: Style.space(8)
               Text {
-                id: titleText
-                anchors.left: parent.left
-                anchors.right: keysCtl.left
-                anchors.rightMargin: Style.space(8)
+                text: "\uf007"
+                color: root.ypYellow
+                font.family: root.contentFontFamily
+                font.pixelSize: Style.font.body
                 anchors.verticalCenter: parent.verticalCenter
+              }
+              Text {
                 text: "ENRICHERINO"
                 color: root.ypYellow
                 font.family: root.contentFontFamily
                 font.pixelSize: Style.font.body
                 font.bold: true
                 font.letterSpacing: 3.2
-                elide: Text.ElideRight
+                anchors.verticalCenter: parent.verticalCenter
+              }
+            }
+
+            Text {
+              text: "look someone up"
+              color: root.contentForeground
+              opacity: 0.5
+              font.family: root.contentFontFamily
+              font.pixelSize: Style.font.body
+              width: parent.width
+            }
+
+            Row {
+              width: parent.width
+              spacing: Style.space(6)
+
+              Item {
+                width: Math.max(0, parent.width - keysCtl.width - parent.spacing)
+                height: 1
               }
 
               Row {
                 id: keysCtl
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
                 spacing: Style.space(6)
 
                 Text {
@@ -250,15 +267,6 @@ Panel {
                   }
                 }
               }
-            }
-
-            Text {
-              text: "look someone up"
-              color: root.contentForeground
-              opacity: 0.5
-              font.family: root.contentFontFamily
-              font.pixelSize: Style.font.body
-              width: parent.width
             }
           }
 

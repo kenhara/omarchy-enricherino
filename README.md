@@ -10,7 +10,10 @@ Delight in ≤10 seconds. ZoomInfo under the hood. Unofficial.
 **ID:** `kenhara.enricherino`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.3.3
+**Version:** 0.3.4
+
+### 0.3.4
+- Header: FA person glyph (`\uf007`) left of ENRICHERINO; Keys lock moved off the title row (full-width title plane).
 
 ### 0.3.3
 - **Clear + rotate Keys.** Unlocked form: **Save** (lock) + **Clear** (urgent, `\uf1f8`) → `clearKeys()` blanks `credentials.json`, deletes `zi_token.json`, toast "Keys cleared", stays empty/unlocked. Help: unlock, paste new Client ID + Secret, Save; Clear wipes the file. Copy: subheader *look someone up*; quiet footer *Unofficial · GTM.AI / ZoomInfo* (path hint stays a second line while unlocked).
@@ -309,7 +312,7 @@ EOF
 ## Layout
 
 ```
-manifest.json          # kenhara.enricherino @ 0.3.3
+manifest.json          # kenhara.enricherino @ 0.3.4
 BarWidget.qml          # bar entry + Loader → Panel; middle-click clear
 Panel.qml              # header Keys lock + paste + FIND + contact card
 YellowStore.qml        # pasteInput, detectMode, findFromPaste, cache, lookup, credentials
