@@ -23,7 +23,7 @@ from urllib.parse import urlparse
 
 LEADMAGIC_BASE = "https://api.leadmagic.io"
 ZOOMINFO_ENRICH = "https://api.zoominfo.com/gtm/data/v1/contacts/enrich"
-PLUGIN_ID = "harris.enricherino"
+PLUGIN_ID = "kenhara.enricherino"
 
 
 def read_manifest_version() -> str:
@@ -35,7 +35,7 @@ def read_manifest_version() -> str:
             return ver
     except Exception:
         pass
-    return "0.2.4"
+    return "0.2.5"
 
 
 VERSION = read_manifest_version()

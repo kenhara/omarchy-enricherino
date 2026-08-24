@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "id": "harris.enricherino",
+  "id": "kenhara.enricherino",
   "name": "Enricherino",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "author": "Harris Kenny",
   "license": "MIT",
   "description": "Paste one thing. Hit FIND. Get a contact card. Unofficial LeadMagic / ZoomInfo / GTM.AI waterfall enrichment; not affiliated.",
@@ -46,7 +46,7 @@
   ],
   "barWidget": {
     "displayName": "Enricherino",
-    "description": "Paste email / LinkedIn / X / phone / Name at company — FIND — contact card. Waterfall under the hood (LeadMagic / ZoomInfo). Unofficial; not a sequencer.",
+    "description": "Paste email / LinkedIn / X / phone / Name at company \u2014 FIND \u2014 contact card. Waterfall under the hood (LeadMagic / ZoomInfo). Unofficial; not a sequencer.",
     "category": "Productivity",
     "allowMultiple": false,
     "defaultSection": "right",

@@ -1,7 +1,7 @@
 # Enricherino — design notes
 
 **Status:** 0.2.4 (discoverability)  
-**Id:** `harris.enricherino`  
+**Id:** `kenhara.enricherino`  
 **Peers:** Compliantish, Rocketlauncher, Encyclopedic, Scriptural
 
 ## Why

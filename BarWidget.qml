@@ -7,7 +7,7 @@ import qs.Ui
 // BarWidget loads nested Panel.qml via Loader. kinds: ["bar-widget"] only.
 BarWidget {
   id: root
-  moduleName: "harris.enricherino"
+  moduleName: "kenhara.enricherino"
 
   readonly property bool opened: panelLoader.item
     ? panelLoader.item.opened === true

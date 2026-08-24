@@ -7,10 +7,13 @@ Paste one thing. Hit FIND. Get a contact card.
 Individual contact lookup for Omarchy — **yellow-pages / pixel desk joke, not a sequencer.**
 Delight in ≤10 seconds. Waterfall under the hood. Unofficial.
 
-**ID:** `harris.enricherino`  
+**ID:** `kenhara.enricherino`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.2.4
+**Version:** 0.2.5
+
+### 0.2.5
+- Renamed plugin id `harris.enricherino` → `kenhara.enricherino` (install path `~/.config/omarchy/plugins/kenhara.enricherino`). Display name unchanged.
 
 ### 0.2.4
 - Discoverability: expanded `keywords` + `barWidget.aliases` (LeadMagic/ZoomInfo/Apollo/etc.); honest search note.
@@ -78,7 +81,7 @@ may not index them. Display name stays **Enricherino** (brand-free).
 
 ```sh
 omarchy plugin add https://github.com/kenhara/omarchy-enricherino.git --enable
-omarchy bar move harris.enricherino --section right
+omarchy bar move kenhara.enricherino --section right
 ```
 
 ### Local copy (this tree)
@@ -88,12 +91,12 @@ machine:
 
 ```sh
 mkdir -p ~/.config/omarchy/plugins
-cp -a . ~/.config/omarchy/plugins/harris.enricherino
+cp -a . ~/.config/omarchy/plugins/kenhara.enricherino
 
-omarchy plugin validate ~/.config/omarchy/plugins/harris.enricherino
+omarchy plugin validate ~/.config/omarchy/plugins/kenhara.enricherino
 omarchy-shell shell rescanPlugins
 
-omarchy bar move harris.enricherino --section right
+omarchy bar move kenhara.enricherino --section right
 ```
 
 Hot reload applies on save under `~/.config/omarchy/plugins/`.
@@ -102,7 +105,7 @@ Hot reload applies on save under `~/.config/omarchy/plugins/`.
 
 ```sh
 mkdir -p ~/.config/omarchy/plugins
-ln -sfn /path/to/omarchy-enricherino ~/.config/omarchy/plugins/harris.enricherino
+ln -sfn /path/to/omarchy-enricherino ~/.config/omarchy/plugins/kenhara.enricherino
 omarchy-shell shell rescanPlugins
 ```
 
@@ -190,7 +193,7 @@ Waterfall = LeadMagic first, then ZoomInfo only for still-missing fields.
 ## Remove
 
 ```sh
-omarchy plugin remove harris.enricherino
+omarchy plugin remove kenhara.enricherino
 ```
 
 Optional cache cleanup:
@@ -206,7 +209,7 @@ rm -rf ~/.cache/enricherino
 
 Outbound HTTPS only when you click FIND. Keys stay in widget settings /
 process env for that one call — never written into the repo or the result cache.
-User-Agent: `Enricherino/<manifest version> (Omarchy unofficial; harris.enricherino)`.
+User-Agent: `Enricherino/<manifest version> (Omarchy unofficial; kenhara.enricherino)`.
 
 Cache (last **successful** lookup only): `~/.cache/enricherino/last.json`.
 
@@ -223,7 +226,7 @@ python3 scripts/lookup.py --provider leadmagic|zoominfo|waterfall \
 ## Layout
 
 ```
-manifest.json          # harris.enricherino @ 0.2.2
+manifest.json          # kenhara.enricherino @ 0.2.2
 BarWidget.qml          # bar entry + Loader → Panel; middle-click clear
 Panel.qml              # paste + FIND + contact card
 YellowStore.qml        # pasteInput, detectMode, findFromPaste, cache, lookup

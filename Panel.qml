@@ -7,7 +7,7 @@ import qs.Ui
 // 0.2.0 — one paste field, FIND, contact card. No provider chips / input tabs.
 Panel {
   id: root
-  moduleName: "harris.enricherino"
+  moduleName: "kenhara.enricherino"
   manageIpc: false
 
   property var anchorItem: null
