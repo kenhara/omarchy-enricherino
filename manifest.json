@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "kenhara.enricherino",
   "name": "Enricherino",
-  "version": "0.2.11",
+  "version": "0.2.12",
   "author": "Harris Kenny",
   "license": "MIT",
   "description": "Paste one thing. Hit FIND. Get a contact card. Unofficial LeadMagic / ZoomInfo / GTM.AI waterfall enrichment; not affiliated.",
