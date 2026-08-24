@@ -10,7 +10,10 @@ Delight in ≤10 seconds. ZoomInfo under the hood. Unofficial.
 **ID:** `kenhara.enricherino`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.3.4
+**Version:** 0.3.5
+
+### 0.3.5
+- Marketplace preview.png is the live Omarchy smoke screenshot.
 
 ### 0.3.4
 - Header: FA person glyph (`\uf007`) left of ENRICHERINO; Keys lock moved off the title row (full-width title plane).
@@ -312,7 +315,7 @@ EOF
 ## Layout
 
 ```
-manifest.json          # kenhara.enricherino @ 0.3.4
+manifest.json          # kenhara.enricherino @ 0.3.5
 BarWidget.qml          # bar entry + Loader → Panel; middle-click clear
 Panel.qml              # header Keys lock + paste + FIND + contact card
 YellowStore.qml        # pasteInput, detectMode, findFromPaste, cache, lookup, credentials
