@@ -30,6 +30,7 @@ Item {
 
   readonly property string cacheDir: Quickshell.env("HOME") + "/.cache/enricherino"
   readonly property string cachePath: cacheDir + "/last.json"
+  readonly property string tokenCachePath: cacheDir + "/zi_token.json"
   readonly property string credDir: Quickshell.env("HOME") + "/.config/enricherino"
   readonly property string credPath: credDir + "/credentials.json"
   readonly property string pluginDir: String(Qt.resolvedUrl("."))
@@ -90,6 +91,22 @@ Item {
     store.zoominfoClientId = String(clientId || "")
     store.zoominfoClientSecret = String(clientSecret || "")
     store.scheduleSaveCredentials()
+  }
+
+  function clearKeys() {
+    // Blank in-memory + persist empty credentials.json (save_credentials.py).
+    // Do not write secrets (or leftovers) to bar settings.
+    store.setKeys("", "")
+    store.deleteTokenCache()
+    store.showToast("Keys cleared")
+  }
+
+  function deleteTokenCache() {
+    var p = store.tokenCachePath
+    if (!p || !p.length) return
+    tokenRmProc.running = false
+    tokenRmProc.command = ["rm", "-f", "--", p]
+    tokenRmProc.running = true
   }
 
   function scheduleSaveCredentials() {
@@ -636,6 +653,17 @@ Item {
       } else {
         store.showToast("Keys save failed")
       }
+    }
+  }
+
+  Process {
+    id: tokenRmProc
+    running: false
+    stdout: SplitParser {
+      onRead: function(line) { /* quiet */ }
+    }
+    stderr: SplitParser {
+      onRead: function(line) { /* leftover token gone or already absent */ }
     }
   }
 

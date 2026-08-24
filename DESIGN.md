@@ -1,6 +1,6 @@
 # Enricherino — design notes
 
-**Status:** 0.3.2 (person bar glyph + lockable header Keys)  
+**Status:** 0.3.3 (Clear + rotate Keys)  
 **Id:** `kenhara.enricherino`  
 **Peers:** Compliantish, Rocketlauncher, Encyclopedic, Scriptural
 
@@ -26,19 +26,19 @@ follow-up contact via ZoomInfo GTM.
 
 ## Bar
 
-FA user/head `\uf007` — left click toggles panel. Tooltip: *Enricherino — look somebody up ·
+FA user/head `\uf007` — left click toggles panel. Tooltip: *Enricherino — look someone up ·
 middle: clear*. Middle click clears last result / cache (does **not** auto-lookup).
 Right-click unused.
 
-## Panel (0.3.2)
+## Panel (0.3.3)
 
-1. Big **ENRICHERINO** (letter-spacing) + compact Keys lock glyph (right of title) + *look somebody up*
-2. Keys form only while unlocked (help + Client ID + Secret + Save/Lock) — not between paste and FIND
+1. Big **ENRICHERINO** (letter-spacing) + compact Keys lock glyph (right of title) + *look someone up*
+2. Keys form only while unlocked (help + Client ID + Secret + Save + Clear) — not between paste and FIND. Rotate: unlock, paste new, Save. Clear wipes credentials.json + zi_token.json and stays unlocked.
 3. One multiline/paste field
 4. Huge yellow **FIND** (immediately under paste)
 5. Tiny detected-mode hint under the field
 6. Contact card: name big, title · company, email/phone/LinkedIn/X + Copy, **Copy card**
-7. Quiet footer: unofficial · ZoomInfo · not a sequencer; path note only while Keys unlocked
+7. Quiet footer: Unofficial · GTM.AI / ZoomInfo; path note only while Keys unlocked
 
 **Removed:** LeadMagic, waterfall / `providerMode`, Bearer paste field, provider chips, input mode tabs.
 

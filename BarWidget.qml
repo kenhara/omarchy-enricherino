@@ -150,7 +150,7 @@ BarWidget {
     fontSize: Style.font.caption
     horizontalMargin: 8.5
     tooltipText: {
-      var tip = "Enricherino — look somebody up · middle: clear"
+      var tip = "Enricherino — look someone up · middle: clear"
       if (yellowStore.loading)
         tip = "Enricherino — finding… · middle: clear"
       if (root.panelLoadError && root.panelLoadError.length) {

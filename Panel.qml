@@ -133,7 +133,16 @@ Panel {
     root.keysUnlocked = false
   }
 
-  readonly property int panelBaseHeight: Style.space(root.keysUnlocked ? 920 : 680)
+  function clearKeysForm() {
+    if (!liveStore) return
+    liveStore.clearKeys()
+    root.keysUnlocked = true
+    // TextInput user edits can break the store binding — force empty for rotate path.
+    if (clientIdEdit) clientIdEdit.text = ""
+    if (clientSecretEdit) clientSecretEdit.text = ""
+  }
+
+  readonly property int panelBaseHeight: Style.space(root.keysUnlocked ? 960 : 680)
 
   KeyboardPanel {
     id: panel
@@ -244,7 +253,7 @@ Panel {
             }
 
             Text {
-              text: "look somebody up"
+              text: "look someone up"
               color: root.contentForeground
               opacity: 0.5
               font.family: root.contentFontFamily
@@ -262,6 +271,16 @@ Panel {
             Text {
               width: parent.width
               text: "ZoomInfo GTM Studio → Custom Apps → Create → Client Credentials. Scopes: Data + GTM (at least). Enricherino mints Bearer tokens for you — never paste a Bearer."
+              color: root.contentForeground
+              opacity: 0.45
+              font.family: root.contentFontFamily
+              font.pixelSize: Style.font.caption
+              wrapMode: Text.WordWrap
+            }
+
+            Text {
+              width: parent.width
+              text: "Unlock to rotate: paste new Client ID + Secret, Save. Clear wipes the saved file."
               color: root.contentForeground
               opacity: 0.45
               font.family: root.contentFontFamily
@@ -359,44 +378,89 @@ Panel {
               }
             }
 
-            Rectangle {
-              id: saveLockBtn
-              width: saveLockRow.implicitWidth + Style.space(20)
-              height: Style.space(32)
-              radius: 6
-              color: saveLockMa.containsMouse
-                ? Qt.rgba(root.ypYellow.r, root.ypYellow.g, root.ypYellow.b, 0.28)
-                : Qt.rgba(root.ypYellow.r, root.ypYellow.g, root.ypYellow.b, 0.16)
-              border.width: 1
-              border.color: Qt.rgba(root.ypYellow.r, root.ypYellow.g, root.ypYellow.b, 0.4)
+            Row {
+              spacing: Style.space(8)
 
-              Row {
-                id: saveLockRow
-                anchors.centerIn: parent
-                spacing: Style.space(8)
-                Text {
-                  text: "\uf023"
-                  color: root.contentForeground
-                  font.family: root.contentFontFamily
-                  font.pixelSize: Style.font.body
-                  anchors.verticalCenter: parent.verticalCenter
+              Rectangle {
+                id: saveLockBtn
+                width: saveLockRow.implicitWidth + Style.space(20)
+                height: Style.space(32)
+                radius: 6
+                color: saveLockMa.containsMouse
+                  ? Qt.rgba(root.ypYellow.r, root.ypYellow.g, root.ypYellow.b, 0.28)
+                  : Qt.rgba(root.ypYellow.r, root.ypYellow.g, root.ypYellow.b, 0.16)
+                border.width: 1
+                border.color: Qt.rgba(root.ypYellow.r, root.ypYellow.g, root.ypYellow.b, 0.4)
+
+                Row {
+                  id: saveLockRow
+                  anchors.centerIn: parent
+                  spacing: Style.space(8)
+                  Text {
+                    text: "\uf023"
+                    color: root.contentForeground
+                    font.family: root.contentFontFamily
+                    font.pixelSize: Style.font.body
+                    anchors.verticalCenter: parent.verticalCenter
+                  }
+                  Text {
+                    text: "Save"
+                    color: root.contentForeground
+                    font.family: root.contentFontFamily
+                    font.pixelSize: Style.font.body
+                    font.bold: true
+                    anchors.verticalCenter: parent.verticalCenter
+                  }
                 }
-                Text {
-                  text: "Save"
-                  color: root.contentForeground
-                  font.family: root.contentFontFamily
-                  font.pixelSize: Style.font.body
-                  font.bold: true
-                  anchors.verticalCenter: parent.verticalCenter
+
+                MouseArea {
+                  id: saveLockMa
+                  anchors.fill: parent
+                  hoverEnabled: true
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: root.saveAndLock()
                 }
               }
 
-              MouseArea {
-                id: saveLockMa
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: root.saveAndLock()
+              Rectangle {
+                id: clearKeysBtn
+                width: clearKeysRow.implicitWidth + Style.space(20)
+                height: Style.space(32)
+                radius: 6
+                color: clearKeysMa.containsMouse
+                  ? Qt.rgba(Color.urgent.r, Color.urgent.g, Color.urgent.b, 0.32)
+                  : Qt.rgba(Color.urgent.r, Color.urgent.g, Color.urgent.b, 0.16)
+                border.width: 1
+                border.color: Qt.rgba(Color.urgent.r, Color.urgent.g, Color.urgent.b, 0.5)
+
+                Row {
+                  id: clearKeysRow
+                  anchors.centerIn: parent
+                  spacing: Style.space(8)
+                  Text {
+                    text: "\uf1f8"
+                    color: Color.urgent
+                    font.family: root.contentFontFamily
+                    font.pixelSize: Style.font.body
+                    anchors.verticalCenter: parent.verticalCenter
+                  }
+                  Text {
+                    text: "Clear"
+                    color: Color.urgent
+                    font.family: root.contentFontFamily
+                    font.pixelSize: Style.font.body
+                    font.bold: true
+                    anchors.verticalCenter: parent.verticalCenter
+                  }
+                }
+
+                MouseArea {
+                  id: clearKeysMa
+                  anchors.fill: parent
+                  hoverEnabled: true
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: root.clearKeysForm()
+                }
               }
             }
           }
@@ -693,7 +757,7 @@ Panel {
           // Quiet footer
           Text {
             width: parent.width
-            text: "unofficial · ZoomInfo · not a sequencer"
+            text: "Unofficial · GTM.AI / ZoomInfo"
             color: root.contentForeground
             opacity: 0.22
             font.family: root.contentFontFamily

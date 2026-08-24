@@ -10,7 +10,10 @@ Delight in ≤10 seconds. ZoomInfo under the hood. Unofficial.
 **ID:** `kenhara.enricherino`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.3.2
+**Version:** 0.3.3
+
+### 0.3.3
+- **Clear + rotate Keys.** Unlocked form: **Save** (lock) + **Clear** (urgent, `\uf1f8`) → `clearKeys()` blanks `credentials.json`, deletes `zi_token.json`, toast "Keys cleared", stays empty/unlocked. Help: unlock, paste new Client ID + Secret, Save; Clear wipes the file. Copy: subheader *look someone up*; quiet footer *Unofficial · GTM.AI / ZoomInfo* (path hint stays a second line while unlocked).
 
 ### 0.3.2
 - **Bar glyph.** Tintable FA user/head `\uf007` (was search `\uf002`). Caption size; `Color.accent` while loading.
@@ -165,7 +168,9 @@ Open Enricherino → header lock / key glyph (right of **ENRICHERINO**):
 1. ZoomInfo GTM Studio → **Custom Apps** → **Create** → **Client Credentials**
 2. Scopes at least **Data** + **GTM**
 3. If locked, click the glyph to unlock. Paste **Client ID** + **Client Secret**
-   (password echo on secret) and click **Save** (lock)
+   (password echo on secret) and click **Save** (lock). To **rotate**, unlock and
+   paste new values, then Save. **Clear** (trash) wipes the saved file and the
+   minted token cache; the form stays unlocked for new keys.
 
 Enricherino **mints Bearer tokens for you** — never paste a Bearer. **Save / Lock**
 writes `~/.config/enricherino/credentials.json` (directory mode **0700**, file mode
@@ -232,6 +237,7 @@ Leftover `zoominfoBearerToken` / LeadMagic / old schema keys are ignored.
 | Copy / Copy card | Clipboard field or full card (toast only on success) |
 | Header key/lock | Toggle Keys; `\uf023` saved, `\uf09c` editing, `\uf084` none |
 | Save / Lock | persistKeys() → credentials.json (0600) → lock |
+| Clear (unlocked Keys) | clearKeys() → empty credentials.json + delete zi_token.json; toast "Keys cleared"; stay unlocked |
 
 ### Detect modes
 
@@ -303,7 +309,7 @@ EOF
 ## Layout
 
 ```
-manifest.json          # kenhara.enricherino @ 0.3.2
+manifest.json          # kenhara.enricherino @ 0.3.3
 BarWidget.qml          # bar entry + Loader → Panel; middle-click clear
 Panel.qml              # header Keys lock + paste + FIND + contact card
 YellowStore.qml        # pasteInput, detectMode, findFromPaste, cache, lookup, credentials
