@@ -5,7 +5,7 @@ import Quickshell.Io
 // Enricherino — runs scripts/lookup.py via Process; parses JSON stdout.
 // Individual follow-up only. Not a sequencer.
 // Caches last successful result to ~/.cache/enricherino/last.json (never API keys).
-QtObject {
+Item {
   id: store
 
   property string leadmagicApiKey: ""
