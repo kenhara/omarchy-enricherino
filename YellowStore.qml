@@ -35,7 +35,8 @@ Item {
     .replace(/\/$/, "")
   readonly property string lookupPath: pluginDir + "/scripts/lookup.py"
 
-  readonly property string barGlyph: "🔍"
+  // FA search (\uf002) — tintable via Text.color; color emoji is not
+  readonly property string barGlyph: "\uf002"
   readonly property string barLabel: store.barGlyph
   readonly property string lastUpdatedText: formatUpdated(store.lookedUpAt)
 
@@ -50,7 +51,7 @@ Item {
 
   readonly property string keysHint: {
     if (store.hasAnyKey) return ""
-    return "add keys in widget settings"
+    return "add a key under Keys below"
   }
 
   readonly property string detectedModeLabel: {
@@ -329,7 +330,7 @@ Item {
       return
     }
     if (!store.hasAnyKey) {
-      store.lastError = store.keysHint || "Add API key in widget settings"
+      store.lastError = store.keysHint || "add a key under Keys below"
       store.showToast(store.lastError)
       return
     }

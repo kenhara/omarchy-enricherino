@@ -5,7 +5,7 @@ import qs.Ui
 
 // Nested details panel for Enricherino (loaded by BarWidget — not a separate kind).
 // KeyboardPanel shell (Compliantish/Rocketlauncher).
-// One paste field, FIND, contact card. No provider chips / input tabs.
+// One paste field, FIND, contact card + in-panel Keys. No input tabs.
 Panel {
   id: root
   moduleName: "kenhara.enricherino"
@@ -14,6 +14,10 @@ Panel {
   property var anchorItem: null
   property var hostWidget: null
   property var store: null
+
+  // Keys disclosure (Compliantish Checks pattern). Expand by default when no key.
+  property bool keysMenuOpen: true
+  property bool keysMenuInitialized: false
 
   readonly property var barIdentity: hostWidget || root
   readonly property color contentForeground: bar ? bar.foreground : Color.foreground
@@ -42,8 +46,10 @@ Panel {
 
 
   onOpenedChanged: {
-    if (root.opened)
+    if (root.opened) {
+      root.ensureKeysMenuDefault()
       Qt.callLater(function () { if (pasteEdit) pasteEdit.forceActiveFocus() })
+    }
   }
 
   function contactRows() {
@@ -72,7 +78,31 @@ Panel {
     return title || company || ""
   }
 
-  readonly property int panelBaseHeight: Style.space(680)
+  function ensureKeysMenuDefault() {
+    if (root.keysMenuInitialized || !liveStore) return
+    root.keysMenuOpen = !liveStore.hasAnyKey
+    root.keysMenuInitialized = true
+  }
+
+  function persistSetting(key, value) {
+    if (!liveStore) return
+    var opts = ({})
+    opts[key] = value
+    liveStore.applySettings(opts)
+    // Mirror into bar settings so shell.json / `omarchy bar set` stay durable.
+    if (hostWidget && typeof hostWidget.mirrorSettingsKey === "function")
+      hostWidget.mirrorSettingsKey(key, value)
+    else if (hostWidget && hostWidget.settings) {
+      try { hostWidget.settings[key] = value } catch (e) {}
+    }
+  }
+
+  function setProviderMode(mode) {
+    if (!liveStore) return
+    root.persistSetting("providerMode", liveStore.normalizeProvider(mode))
+  }
+
+  readonly property int panelBaseHeight: Style.space(root.keysMenuOpen ? 860 : 720)
 
   KeyboardPanel {
     id: panel
@@ -195,15 +225,231 @@ Panel {
               font.pixelSize: Style.font.caption
             }
 
-            // Compact keys one-liner (not a banner)
+            // Empty-state hint when collapsed / no key yet
             Text {
               width: parent.width
-              visible: liveStore && !liveStore.hasAnyKey
-              text: liveStore ? (liveStore.keysHint || "add keys in widget settings") : "add keys in widget settings"
+              visible: liveStore && !liveStore.hasAnyKey && !root.keysMenuOpen
+              text: liveStore ? (liveStore.keysHint || "add a key under Keys below") : "add a key under Keys below"
               color: root.ypYellow
               opacity: 0.75
               font.family: root.contentFontFamily
               font.pixelSize: Style.font.caption
+            }
+          }
+
+          // Keys disclosure — in-panel (Omarchy has no widget-settings GUI)
+          Column {
+            width: parent.width
+            spacing: Style.space(8)
+
+            Rectangle {
+              id: keysBtn
+              width: keysLabel.implicitWidth + Style.space(14)
+              height: Style.space(26)
+              radius: 6
+              color: (root.keysMenuOpen || keysMa.containsMouse)
+                ? Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
+                : root.surfaceColor
+              border.width: 1
+              border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
+
+              Text {
+                id: keysLabel
+                anchors.centerIn: parent
+                text: root.keysMenuOpen ? "Keys ▴" : "Keys ▾"
+                color: root.contentForeground
+                font.family: root.contentFontFamily
+                font.pixelSize: Style.font.bodySmall
+              }
+
+              MouseArea {
+                id: keysMa
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: root.keysMenuOpen = !root.keysMenuOpen
+              }
+            }
+
+            Rectangle {
+              visible: root.keysMenuOpen
+              width: parent.width
+              height: keysMenuCol.implicitHeight + Style.space(16)
+              radius: 8
+              color: root.surfaceColor
+              border.width: 1
+              border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
+
+              Column {
+                id: keysMenuCol
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: Style.space(12)
+                spacing: Style.space(10)
+
+                // LeadMagic API key
+                Column {
+                  width: parent.width
+                  spacing: Style.space(4)
+                  Text {
+                    text: "LeadMagic API key"
+                    color: root.contentForeground
+                    opacity: 0.55
+                    font.family: root.contentFontFamily
+                    font.pixelSize: Style.font.caption
+                  }
+                  Rectangle {
+                    width: parent.width
+                    height: Style.space(32)
+                    radius: 6
+                    color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.04)
+                    border.width: 1
+                    border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
+                    TextInput {
+                      id: leadmagicEdit
+                      anchors.fill: parent
+                      anchors.leftMargin: Style.space(10)
+                      anchors.rightMargin: Style.space(10)
+                      verticalAlignment: TextInput.AlignVCenter
+                      color: root.contentForeground
+                      font.family: root.contentFontFamily
+                      font.pixelSize: Style.font.bodySmall
+                      echoMode: TextInput.Password
+                      selectByMouse: true
+                      clip: true
+                      text: liveStore ? liveStore.leadmagicApiKey : ""
+                      onTextChanged: {
+                        if (!liveStore) return
+                        if (text === liveStore.leadmagicApiKey) return
+                        root.persistSetting("leadmagicApiKey", text)
+                      }
+                      Text {
+                        anchors.fill: parent
+                        visible: !leadmagicEdit.text.length
+                        text: "LeadMagic API key"
+                        color: root.contentForeground
+                        opacity: 0.32
+                        font.family: root.contentFontFamily
+                        font.pixelSize: Style.font.bodySmall
+                        verticalAlignment: Text.AlignVCenter
+                      }
+                    }
+                  }
+                }
+
+                // ZoomInfo bearer
+                Column {
+                  width: parent.width
+                  spacing: Style.space(4)
+                  Text {
+                    text: "ZoomInfo bearer"
+                    color: root.contentForeground
+                    opacity: 0.55
+                    font.family: root.contentFontFamily
+                    font.pixelSize: Style.font.caption
+                  }
+                  Rectangle {
+                    width: parent.width
+                    height: Style.space(32)
+                    radius: 6
+                    color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.04)
+                    border.width: 1
+                    border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
+                    TextInput {
+                      id: zoominfoEdit
+                      anchors.fill: parent
+                      anchors.leftMargin: Style.space(10)
+                      anchors.rightMargin: Style.space(10)
+                      verticalAlignment: TextInput.AlignVCenter
+                      color: root.contentForeground
+                      font.family: root.contentFontFamily
+                      font.pixelSize: Style.font.bodySmall
+                      echoMode: TextInput.Password
+                      selectByMouse: true
+                      clip: true
+                      text: liveStore ? liveStore.zoominfoBearerToken : ""
+                      onTextChanged: {
+                        if (!liveStore) return
+                        if (text === liveStore.zoominfoBearerToken) return
+                        root.persistSetting("zoominfoBearerToken", text)
+                      }
+                      Text {
+                        anchors.fill: parent
+                        visible: !zoominfoEdit.text.length
+                        text: "ZoomInfo bearer"
+                        color: root.contentForeground
+                        opacity: 0.32
+                        font.family: root.contentFontFamily
+                        font.pixelSize: Style.font.bodySmall
+                        verticalAlignment: Text.AlignVCenter
+                      }
+                    }
+                  }
+                }
+
+                // Provider mode — three small buttons (schema enum)
+                Column {
+                  width: parent.width
+                  spacing: Style.space(4)
+                  Text {
+                    text: "Provider mode"
+                    color: root.contentForeground
+                    opacity: 0.55
+                    font.family: root.contentFontFamily
+                    font.pixelSize: Style.font.caption
+                  }
+                  Row {
+                    spacing: Style.space(6)
+                    Repeater {
+                      model: ["leadmagic", "zoominfo", "waterfall"]
+                      delegate: Rectangle {
+                        required property string modelData
+                        width: modeLabel.implicitWidth + Style.space(12)
+                        height: Style.space(24)
+                        radius: 6
+                        readonly property bool selected: liveStore
+                          && liveStore.normalizeProvider(liveStore.providerMode) === modelData
+                        color: selected
+                          ? Qt.rgba(root.ypYellow.r, root.ypYellow.g, root.ypYellow.b, 0.28)
+                          : (modeMa.containsMouse
+                            ? Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
+                            : Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.06))
+                        border.width: 1
+                        border.color: selected
+                          ? Qt.rgba(root.ypYellow.r, root.ypYellow.g, root.ypYellow.b, 0.5)
+                          : Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
+                        Text {
+                          id: modeLabel
+                          anchors.centerIn: parent
+                          text: modelData
+                          color: root.contentForeground
+                          font.family: root.contentFontFamily
+                          font.pixelSize: Style.font.caption
+                          font.bold: parent.selected
+                        }
+                        MouseArea {
+                          id: modeMa
+                          anchors.fill: parent
+                          hoverEnabled: true
+                          cursorShape: Qt.PointingHandCursor
+                          onClicked: root.setProviderMode(modelData)
+                        }
+                      }
+                    }
+                  }
+                }
+
+                Text {
+                  width: parent.width
+                  text: "Keys stored in Omarchy bar settings (plaintext). CLI: omarchy bar set kenhara.enricherino leadmagicApiKey '…'"
+                  color: root.contentForeground
+                  opacity: 0.4
+                  font.family: root.contentFontFamily
+                  font.pixelSize: Style.font.caption
+                  wrapMode: Text.WordWrap
+                }
+              }
             }
           }
 

@@ -104,9 +104,15 @@ BarWidget {
   }
 
   function mirrorProviderMode(mode) {
+    root.mirrorSettingsKey("providerMode", yellowStore.normalizeProvider(mode))
+  }
+
+  // Best-effort write-back into mutable settings (Compliantish mirrorSettingsEnable).
+  // Keeps `omarchy bar set` / shell.json durable across reload.
+  function mirrorSettingsKey(key, value) {
     if (!root.settings) return
     try {
-      root.settings.providerMode = yellowStore.normalizeProvider(mode)
+      root.settings[key] = value
     } catch (e) {}
   }
 
@@ -156,7 +162,11 @@ BarWidget {
     id: button
     anchors.fill: parent
     bar: root.bar
-    text: yellowStore.barLabel || "🔍"
+    // FA search (\uf002) — tintable; active while loading → Color.accent
+    text: yellowStore.barLabel || "\uf002"
+    active: yellowStore.loading
+    activeColor: Color.accent
+    fontSize: Style.font.caption
     horizontalMargin: 8.5
     tooltipText: {
       var tip = "Enricherino — look somebody up · middle: clear"

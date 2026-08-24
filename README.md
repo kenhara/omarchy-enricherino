@@ -10,7 +10,10 @@ Delight in ≤10 seconds. Waterfall under the hood. Unofficial.
 **ID:** `kenhara.enricherino`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.2.12
+**Version:** 0.2.13
+
+### 0.2.13
+- In-panel **Keys** disclosure (LeadMagic / ZoomInfo / provider mode) — Omarchy has no widget-settings GUI; mirrors into bar settings for `omarchy bar set` / shell.json. Honest empty-state copy. Tintable FA search bar glyph `\uf002` (caption).
 
 ### 0.2.12
 - KeyboardPanel + PanelKeyCatcher shell (Compliantish/Rocketlauncher) so nested bar-widget panels open on Quattro VPS; BarWidget toggle warns if panelLoader.item is null.
@@ -126,8 +129,31 @@ omarchy-shell shell rescanPlugins
 
 ## Configure keys
 
-Open **widget settings** for Enricherino (Omarchy bar / plugin settings).
-Advanced / schema only — not in the primary panel UI:
+Omarchy has **no widget-settings GUI**. Set keys in-panel or via CLI / `shell.json`.
+
+### 1) In-panel Keys (preferred)
+
+Open Enricherino → expand **Keys ▾**:
+
+- LeadMagic API key (password field)
+- ZoomInfo bearer (password field)
+- Provider mode: `leadmagic` | `zoominfo` | `waterfall` (default)
+
+Edits write into the store and mirror to bar settings so they survive reload.
+Without a key, Keys expands by default and the empty-state says **add a key under Keys below**.
+
+### 2) CLI (`omarchy bar set`)
+
+```sh
+omarchy bar set kenhara.enricherino leadmagicApiKey '…'
+omarchy bar set kenhara.enricherino zoominfoBearerToken '…'
+omarchy bar set kenhara.enricherino providerMode waterfall
+```
+
+### 3) `~/.config/omarchy/shell.json`
+
+Edit the Enricherino bar layout entry settings (`leadmagicApiKey`,
+`zoominfoBearerToken`, `providerMode`), then reload the shell.
 
 | Schema key | Label | Env passed to script |
 |------------|-------|----------------------|
@@ -135,12 +161,10 @@ Advanced / schema only — not in the primary panel UI:
 | `zoominfoBearerToken` | ZoomInfo / GTM.AI bearer token | `ZOOMINFO_BEARER_TOKEN` → `Authorization: Bearer …` |
 | `providerMode` | Provider mode: `leadmagic` \| `zoominfo` \| `waterfall` (default) | CLI `--provider` |
 
-**Do not commit real keys.** Defaults are empty strings. Schema keys live in
-shell settings **plaintext**. At lookup time they are passed via
+**Do not commit real keys.** Defaults are empty strings. Keys live in Omarchy bar
+settings **plaintext**. At lookup time they are passed via
 `Process.environment` (not argv) for that one call only — **never** written to
 `~/.cache/enricherino/`.
-
-Without keys, the panel shows a compact one-liner: **add keys in widget settings**.
 
 CLI smoke (optional):
 
@@ -171,7 +195,7 @@ python3 scripts/lookup.py --provider waterfall --mode email --json '{"email":"a@
 | Paste field | One multiline/paste; Enter triggers FIND |
 | FIND | Detect mode → fill inputs → `lookup()` |
 | Copy / Copy card | Clipboard field or full card (toast only on success) |
-| Keys one-liner | Shown when required key(s) missing |
+| Keys ▾ | In-panel LeadMagic / ZoomInfo / provider mode; expands when no key |
 
 ### Detect modes
 
@@ -182,9 +206,9 @@ python3 scripts/lookup.py --provider waterfall --mode email --json '{"email":"a@
 | looks like a phone | mostly digits / `+` `()` `-` |
 | looks like name + company | `Name at domain`, `Name @ Company`, `Name, domain.com` |
 
-Provider waterfall stays the default in schema — no chips in the primary UI.
-`providerMode` remains a schema **enum** (`leadmagic` | `zoominfo` | `waterfall`);
-change it in widget settings (chip-style picker if the shell renders enum options).
+Provider waterfall stays the default. `providerMode` remains a schema **enum**
+(`leadmagic` | `zoominfo` | `waterfall`); change it under in-panel **Keys**
+(or CLI / shell.json).
 
 ### Honest capability notes
 
@@ -222,7 +246,7 @@ rm -rf ~/.cache/enricherino
 - LeadMagic: `https://api.leadmagic.io`
 - ZoomInfo GTM: `POST https://api.zoominfo.com/gtm/data/v1/contacts/enrich`
 
-Outbound HTTPS only when you click FIND. Keys stay in widget settings /
+Outbound HTTPS only when you click FIND. Keys stay in Omarchy bar settings /
 process env for that one call — never written into the repo or the result cache.
 User-Agent: `Enricherino/<manifest version> (Omarchy unofficial; kenhara.enricherino)`.
 
@@ -241,9 +265,9 @@ python3 scripts/lookup.py --provider leadmagic|zoominfo|waterfall \
 ## Layout
 
 ```
-manifest.json          # kenhara.enricherino @ 0.2.2
+manifest.json          # kenhara.enricherino @ 0.2.13
 BarWidget.qml          # bar entry + Loader → Panel; middle-click clear
-Panel.qml              # paste + FIND + contact card
+Panel.qml              # paste + FIND + Keys + contact card
 YellowStore.qml        # pasteInput, detectMode, findFromPaste, cache, lookup
 qmldir
 scripts/lookup.py
@@ -259,7 +283,7 @@ README.md
 
 ## Security baseline
 
-- Keys live in **Omarchy shell / widget settings as plaintext** (schema strings).
+- Keys live in **Omarchy bar settings as plaintext** (in-panel Keys, `omarchy bar set`, or shell.json).
   Injected via `Process.environment` for a single `lookup.py` run — **not** in
   argv. **Never** persisted to `~/.cache/enricherino/` or the repo.
 - Cache stores the last successful result card — no API keys / bearer tokens.

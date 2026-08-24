@@ -136,7 +136,7 @@
             placeholder="email, LinkedIn, X, phone, or Name at company.com">alex@example.com</textarea>
         </div>
         <div class="mode-hint" id="modeHint">looks like an email</div>
-        <div class="keys-line" id="keysLine">add keys in widget settings</div>
+        <div class="keys-line" id="keysLine">add a key under Keys below</div>
       </div>
 
       <button type="button" class="find" id="findBtn">FIND</button>
@@ -242,7 +242,7 @@
 
   findBtn.addEventListener('click', function () {
     if (document.body.classList.contains('keys-missing')) {
-      showToast('add keys in widget settings');
+      showToast('add a key under Keys below');
       return;
     }
     if (!paste.value.trim()) {

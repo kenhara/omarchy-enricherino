@@ -36,7 +36,7 @@ Right-click unused.
 2. One multiline/paste field
 3. Huge yellow **FIND**
 4. Tiny detected-mode hint under the field
-5. Compact “add keys in widget settings” if no keys
+5. In-panel Keys disclosure (expands if no key); empty-state “add a key under Keys below”
 6. Contact card: name big, title · company, email/phone/LinkedIn/X + Copy, **Copy card**
 7. Quiet footer: unofficial · waterfall under the hood · not a sequencer
 

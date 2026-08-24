@@ -366,7 +366,7 @@ def apply_leadmagic_payload(out: dict[str, Any], payload: Any, label: str) -> No
 def leadmagic_lookup(mode: str, inputs: dict[str, Any], api_key: str, out: dict[str, Any]) -> None:
     out["provider"] = out.get("provider") or "leadmagic"
     if not api_key:
-        out["errors"].append("LeadMagic API key missing — add leadmagicApiKey in widget settings")
+        out["errors"].append("LeadMagic API key missing — add a key under Keys below (or omarchy bar set)")
         return
 
     if mode == "email":
@@ -639,7 +639,7 @@ def zoominfo_lookup(mode: str, inputs: dict[str, Any], token: str, out: dict[str
     out["provider"] = out.get("provider") or "zoominfo"
     if not token:
         out["errors"].append(
-            "ZoomInfo / GTM.AI bearer token missing — add zoominfoBearerToken in widget settings"
+            "ZoomInfo / GTM.AI bearer token missing — add a key under Keys below (or omarchy bar set)"
         )
         return
     attrs = zoominfo_attrs_for_mode(mode, inputs)
@@ -724,7 +724,7 @@ def run(provider: str, mode: str, inputs: dict[str, Any]) -> dict[str, Any]:
             leadmagic_lookup(mode, inputs, lm_key, out)
         else:
             out["warnings"].append(
-                "LeadMagic API key missing — add leadmagicApiKey in widget settings"
+                "LeadMagic API key missing — add a key under Keys below (or omarchy bar set)"
             )
         # Clear hard errors that block ZoomInfo fill if they are key-missing only
         # Keep them but still try ZoomInfo for missing fields.
@@ -763,11 +763,11 @@ def run(provider: str, mode: str, inputs: dict[str, Any]) -> dict[str, Any]:
                         out["errors"].append(e)
             else:
                 out["warnings"].append(
-                    "ZoomInfo / GTM.AI bearer token missing — add zoominfoBearerToken in widget settings"
+                    "ZoomInfo / GTM.AI bearer token missing — add a key under Keys below (or omarchy bar set)"
                 )
         if not lm_key and not zi_token:
             out["errors"] = [
-                "No API keys configured — add leadmagicApiKey and/or zoominfoBearerToken in widget settings"
+                "No API keys configured — add a key under Keys below (or omarchy bar set)"
             ]
     else:
         out["errors"].append(f"unknown provider: {provider}")
