@@ -1,6 +1,6 @@
 # Enricherino — design notes
 
-**Status:** 0.3.1 (ZoomInfo enrich body fix + file credentials)  
+**Status:** 0.3.2 (person bar glyph + lockable header Keys)  
 **Id:** `kenhara.enricherino`  
 **Peers:** Compliantish, Rocketlauncher, Encyclopedic, Scriptural
 
@@ -26,19 +26,19 @@ follow-up contact via ZoomInfo GTM.
 
 ## Bar
 
-FA search `\uf002` — left click toggles panel. Tooltip: *Enricherino — look somebody up ·
+FA user/head `\uf007` — left click toggles panel. Tooltip: *Enricherino — look somebody up ·
 middle: clear*. Middle click clears last result / cache (does **not** auto-lookup).
 Right-click unused.
 
-## Panel (0.3.1)
+## Panel (0.3.2)
 
-1. Big **ENRICHERINO** (letter-spacing) + *look somebody up*
-2. One multiline/paste field
-3. Huge yellow **FIND**
-4. Tiny detected-mode hint under the field
-5. In-panel Keys: Client ID + Client Secret → credentials.json (0600); expands if missing
+1. Big **ENRICHERINO** (letter-spacing) + compact Keys lock glyph (right of title) + *look somebody up*
+2. Keys form only while unlocked (help + Client ID + Secret + Save/Lock) — not between paste and FIND
+3. One multiline/paste field
+4. Huge yellow **FIND** (immediately under paste)
+5. Tiny detected-mode hint under the field
 6. Contact card: name big, title · company, email/phone/LinkedIn/X + Copy, **Copy card**
-7. Quiet footer: unofficial · ZoomInfo · not a sequencer
+7. Quiet footer: unofficial · ZoomInfo · not a sequencer; path note only while Keys unlocked
 
 **Removed:** LeadMagic, waterfall / `providerMode`, Bearer paste field, provider chips, input mode tabs.
 

@@ -43,8 +43,8 @@ Item {
   property bool credentialsLoaded: false
   property bool credentialsMigrated: false
 
-  // FA search (\uf002) — tintable via Text.color; color emoji is not
-  readonly property string barGlyph: "\uf002"
+  // FA user/head (\uf007) — tintable via Text.color; color emoji is not
+  readonly property string barGlyph: "\uf007"
   readonly property string barLabel: store.barGlyph
   readonly property string lastUpdatedText: formatUpdated(store.lookedUpAt)
 

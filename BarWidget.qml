@@ -143,8 +143,8 @@ BarWidget {
     id: button
     anchors.fill: parent
     bar: root.bar
-    // FA search (\uf002) — tintable; active while loading → Color.accent
-    text: yellowStore.barLabel || "\uf002"
+    // FA user/head (\uf007) — tintable; active while loading → Color.accent
+    text: yellowStore.barLabel || "\uf007"
     active: yellowStore.loading
     activeColor: Color.accent
     fontSize: Style.font.caption

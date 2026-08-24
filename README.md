@@ -10,7 +10,11 @@ Delight in ≤10 seconds. ZoomInfo under the hood. Unofficial.
 **ID:** `kenhara.enricherino`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.3.1
+**Version:** 0.3.2
+
+### 0.3.2
+- **Bar glyph.** Tintable FA user/head `\uf007` (was search `\uf002`). Caption size; `Color.accent` while loading.
+- **Lockable Keys.** Compact header control (right of ENRICHERINO): lock `\uf023` when saved, unlock `\uf09c` while editing, key `\uf084` if none yet. Click toggles `keysUnlocked`. Default **locked** when credentials exist; **unlocked** for setup. Locked hides Client ID/Secret (optional “Keys saved”; no secret echo). Unlocked shows help + fields + **Save / Lock** (`\uf023` Save) → `persistKeys()` then lock. Credentials stay in `~/.config/enricherino/credentials.json` (0600) — not bar settings. Path note only while unlocked. FIND sits immediately under the paste field.
 
 ### 0.3.1
 - **ZoomInfo enrich body fix.** Correct GTM Data API `ContactEnrich` shape:
@@ -151,21 +155,24 @@ omarchy-shell shell rescanPlugins
 ## Configure keys
 
 Omarchy has **no widget-settings GUI**. Paste credentials once under in-panel
-**Keys** — they are saved to a private file, **not** to bar settings / `shell.json`.
+**Keys** (header lock/key glyph) — they are saved to a private file, **not** to
+bar settings / `shell.json`.
 
 ### 1) In-panel Keys (preferred)
 
-Open Enricherino → expand **Keys ▾**:
+Open Enricherino → header lock / key glyph (right of **ENRICHERINO**):
 
 1. ZoomInfo GTM Studio → **Custom Apps** → **Create** → **Client Credentials**
 2. Scopes at least **Data** + **GTM**
-3. Paste **Client ID** + **Client Secret** (password echo) into Keys
+3. If locked, click the glyph to unlock. Paste **Client ID** + **Client Secret**
+   (password echo on secret) and click **Save** (lock)
 
-Enricherino **mints Bearer tokens for you** — never paste a Bearer. Edits write
-to `~/.config/enricherino/credentials.json` (directory mode **0700**, file mode
+Enricherino **mints Bearer tokens for you** — never paste a Bearer. **Save / Lock**
+writes `~/.config/enricherino/credentials.json` (directory mode **0700**, file mode
 **0600**) via `scripts/save_credentials.py` (stdin JSON one-shot). **Not**
-mirrored to Omarchy bar settings. Without both fields, Keys expands by default
-and the empty-state says **add ZoomInfo Client ID + Secret under Keys**.
+mirrored to Omarchy bar settings. Without both fields, Keys start **unlocked**
+(setup visible). With saved keys they start **locked** (fields hidden; “Keys saved”).
+Path note only while unlocked. The empty-state says **add ZoomInfo Client ID + Secret under Keys**.
 
 Upgrading from 0.3.0: if Client ID/Secret were previously in bar settings, the
 panel migrates them into the credentials file once and best-effort clears the
@@ -204,7 +211,7 @@ Leftover `zoominfoBearerToken` / LeadMagic / old schema keys are ignored.
 
 ## Usage
 
-1. **Left-click** bar search glyph → panel.
+1. **Left-click** bar person/avatar glyph → panel.
 2. Paste into the one field: email, LinkedIn, X, phone, or `Name at company.com`.
 3. Tiny hint under the field (“looks like an email”) updates as you type.
 4. Hit **FIND** (or Enter in the paste field). Mode is auto-detected; lookup
@@ -223,7 +230,8 @@ Leftover `zoominfoBearerToken` / LeadMagic / old schema keys are ignored.
 | Paste field | One multiline/paste; Enter triggers FIND |
 | FIND | Detect mode → fill inputs → `lookup()` |
 | Copy / Copy card | Clipboard field or full card (toast only on success) |
-| Keys ▾ | Client ID + Client Secret; expands when missing |
+| Header key/lock | Toggle Keys; `\uf023` saved, `\uf09c` editing, `\uf084` none |
+| Save / Lock | persistKeys() → credentials.json (0600) → lock |
 
 ### Detect modes
 
@@ -295,9 +303,9 @@ EOF
 ## Layout
 
 ```
-manifest.json          # kenhara.enricherino @ 0.3.1
+manifest.json          # kenhara.enricherino @ 0.3.2
 BarWidget.qml          # bar entry + Loader → Panel; middle-click clear
-Panel.qml              # paste + FIND + Keys + contact card
+Panel.qml              # header Keys lock + paste + FIND + contact card
 YellowStore.qml        # pasteInput, detectMode, findFromPaste, cache, lookup, credentials
 qmldir
 scripts/lookup.py

@@ -5,7 +5,7 @@ import qs.Ui
 
 // Nested details panel for Enricherino (loaded by BarWidget — not a separate kind).
 // KeyboardPanel shell (Compliantish/Rocketlauncher).
-// One paste field, FIND, contact card + in-panel Keys. No input tabs.
+// Header Keys lock + one paste field + FIND + contact card. No input tabs.
 Panel {
   id: root
   moduleName: "kenhara.enricherino"
@@ -15,9 +15,9 @@ Panel {
   property var hostWidget: null
   property var store: null
 
-  // Keys disclosure (Compliantish Checks pattern). Expand by default when no key.
-  property bool keysMenuOpen: true
-  property bool keysMenuInitialized: false
+  // Keys: locked hides fields. Default locked if creds exist, unlocked for setup.
+  property bool keysUnlocked: true
+  property bool keysLockInitialized: false
 
   readonly property var barIdentity: hostWidget || root
   readonly property color contentForeground: bar ? bar.foreground : Color.foreground
@@ -37,6 +37,16 @@ Panel {
   readonly property color ypYellow: Qt.rgba(1.0, 0.86, 0.28, 1.0)
 
   readonly property var liveStore: store
+  readonly property bool credsReady: liveStore ? liveStore.credentialsLoaded : false
+
+  // FA: lock \uf023 (saved), unlock \uf09c (editing), key \uf084 (needs setup)
+  readonly property string keysGlyph: {
+    if (!(liveStore && liveStore.hasAnyKey))
+      return "\uf084"
+    if (root.keysUnlocked)
+      return "\uf09c"
+    return "\uf023"
+  }
 
   function switchPanel(direction) {
     if (root.bar && typeof root.bar.switchPanelFrom === "function")
@@ -47,10 +57,13 @@ Panel {
 
   onOpenedChanged: {
     if (root.opened) {
-      root.ensureKeysMenuDefault()
+      root.ensureKeysLockDefault()
       Qt.callLater(function () { if (pasteEdit) pasteEdit.forceActiveFocus() })
     }
   }
+
+  onCredsReadyChanged: root.ensureKeysLockDefault()
+  onStoreChanged: root.ensureKeysLockDefault()
 
   function contactRows() {
     return [
@@ -78,10 +91,11 @@ Panel {
     return title || company || ""
   }
 
-  function ensureKeysMenuDefault() {
-    if (root.keysMenuInitialized || !liveStore) return
-    root.keysMenuOpen = !liveStore.hasAnyKey
-    root.keysMenuInitialized = true
+  function ensureKeysLockDefault() {
+    if (root.keysLockInitialized || !liveStore) return
+    if (!liveStore.credentialsLoaded) return
+    root.keysUnlocked = !liveStore.hasAnyKey
+    root.keysLockInitialized = true
   }
 
   // Keys go to ~/.config/enricherino/credentials.json — never shell.json / bar settings.
@@ -97,17 +111,29 @@ Panel {
     if (!liveStore) return
     if (text === liveStore.zoominfoClientId) return
     liveStore.zoominfoClientId = text
-    root.persistKeys()
   }
 
   function onClientSecretEdited(text) {
     if (!liveStore) return
     if (text === liveStore.zoominfoClientSecret) return
     liveStore.zoominfoClientSecret = text
-    root.persistKeys()
   }
 
-  readonly property int panelBaseHeight: Style.space(root.keysMenuOpen ? 900 : 680)
+  function toggleKeysUnlocked() {
+    if (root.keysUnlocked) {
+      root.persistKeys()
+      root.keysUnlocked = false
+    } else {
+      root.keysUnlocked = true
+    }
+  }
+
+  function saveAndLock() {
+    root.persistKeys()
+    root.keysUnlocked = false
+  }
+
+  readonly property int panelBaseHeight: Style.space(root.keysUnlocked ? 920 : 680)
 
   KeyboardPanel {
     id: panel
@@ -147,18 +173,74 @@ Panel {
             NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
           }
 
-          // Header — big ENRICHERINO + one-line joke
+          // Header — ENRICHERINO + compact Keys lock (right of title)
           Column {
             width: parent.width
             spacing: Style.space(6)
 
-            Text {
-              text: "ENRICHERINO"
-              color: root.ypYellow
-              font.family: root.contentFontFamily
-              font.pixelSize: Style.font.body
-              font.bold: true
-              font.letterSpacing: 3.2
+            Item {
+              width: parent.width
+              height: Math.max(titleText.implicitHeight, keysCtl.implicitHeight)
+
+              Text {
+                id: titleText
+                anchors.left: parent.left
+                anchors.right: keysCtl.left
+                anchors.rightMargin: Style.space(8)
+                anchors.verticalCenter: parent.verticalCenter
+                text: "ENRICHERINO"
+                color: root.ypYellow
+                font.family: root.contentFontFamily
+                font.pixelSize: Style.font.body
+                font.bold: true
+                font.letterSpacing: 3.2
+                elide: Text.ElideRight
+              }
+
+              Row {
+                id: keysCtl
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: Style.space(6)
+
+                Text {
+                  visible: liveStore && liveStore.hasAnyKey && !root.keysUnlocked
+                  text: "Keys saved"
+                  color: root.contentForeground
+                  opacity: 0.45
+                  font.family: root.contentFontFamily
+                  font.pixelSize: Style.font.caption
+                  anchors.verticalCenter: parent.verticalCenter
+                }
+
+                Item {
+                  width: keysGlyphText.implicitWidth + Style.space(10)
+                  height: keysGlyphText.implicitHeight + Style.space(8)
+
+                  Text {
+                    id: keysGlyphText
+                    anchors.centerIn: parent
+                    text: root.keysGlyph
+                    color: {
+                      if (keysGlyphMa.containsMouse) return root.ypYellow
+                      if (!(liveStore && liveStore.hasAnyKey)) return root.ypYellow
+                      if (root.keysUnlocked) return root.ypYellow
+                      return root.contentForeground
+                    }
+                    opacity: keysGlyphMa.containsMouse ? 0.95 : 0.72
+                    font.family: root.contentFontFamily
+                    font.pixelSize: Style.font.body
+                  }
+
+                  MouseArea {
+                    id: keysGlyphMa
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.toggleKeysUnlocked()
+                  }
+                }
+              }
             }
 
             Text {
@@ -168,6 +250,154 @@ Panel {
               font.family: root.contentFontFamily
               font.pixelSize: Style.font.body
               width: parent.width
+            }
+          }
+
+          // Keys form — only while unlocked (not between paste and FIND)
+          Column {
+            width: parent.width
+            visible: root.keysUnlocked
+            spacing: Style.space(8)
+
+            Text {
+              width: parent.width
+              text: "ZoomInfo GTM Studio → Custom Apps → Create → Client Credentials. Scopes: Data + GTM (at least). Enricherino mints Bearer tokens for you — never paste a Bearer."
+              color: root.contentForeground
+              opacity: 0.45
+              font.family: root.contentFontFamily
+              font.pixelSize: Style.font.caption
+              wrapMode: Text.WordWrap
+            }
+
+            Column {
+              width: parent.width
+              spacing: Style.space(4)
+              Text {
+                text: "Client ID"
+                color: root.contentForeground
+                opacity: 0.55
+                font.family: root.contentFontFamily
+                font.pixelSize: Style.font.caption
+              }
+              Rectangle {
+                width: parent.width
+                height: Style.space(32)
+                radius: 6
+                color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.04)
+                border.width: 1
+                border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
+                TextInput {
+                  id: clientIdEdit
+                  anchors.fill: parent
+                  anchors.leftMargin: Style.space(10)
+                  anchors.rightMargin: Style.space(10)
+                  verticalAlignment: TextInput.AlignVCenter
+                  color: root.contentForeground
+                  font.family: root.contentFontFamily
+                  font.pixelSize: Style.font.bodySmall
+                  echoMode: TextInput.Normal
+                  selectByMouse: true
+                  clip: true
+                  text: liveStore ? liveStore.zoominfoClientId : ""
+                  onTextChanged: root.onClientIdEdited(text)
+                  Text {
+                    anchors.fill: parent
+                    visible: !clientIdEdit.text.length
+                    text: "ZoomInfo Client ID"
+                    color: root.contentForeground
+                    opacity: 0.32
+                    font.family: root.contentFontFamily
+                    font.pixelSize: Style.font.bodySmall
+                    verticalAlignment: Text.AlignVCenter
+                  }
+                }
+              }
+            }
+
+            Column {
+              width: parent.width
+              spacing: Style.space(4)
+              Text {
+                text: "Client Secret"
+                color: root.contentForeground
+                opacity: 0.55
+                font.family: root.contentFontFamily
+                font.pixelSize: Style.font.caption
+              }
+              Rectangle {
+                width: parent.width
+                height: Style.space(32)
+                radius: 6
+                color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.04)
+                border.width: 1
+                border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
+                TextInput {
+                  id: clientSecretEdit
+                  anchors.fill: parent
+                  anchors.leftMargin: Style.space(10)
+                  anchors.rightMargin: Style.space(10)
+                  verticalAlignment: TextInput.AlignVCenter
+                  color: root.contentForeground
+                  font.family: root.contentFontFamily
+                  font.pixelSize: Style.font.bodySmall
+                  echoMode: TextInput.Password
+                  selectByMouse: true
+                  clip: true
+                  text: liveStore ? liveStore.zoominfoClientSecret : ""
+                  onTextChanged: root.onClientSecretEdited(text)
+                  Text {
+                    anchors.fill: parent
+                    visible: !clientSecretEdit.text.length
+                    text: "ZoomInfo Client Secret"
+                    color: root.contentForeground
+                    opacity: 0.32
+                    font.family: root.contentFontFamily
+                    font.pixelSize: Style.font.bodySmall
+                    verticalAlignment: Text.AlignVCenter
+                  }
+                }
+              }
+            }
+
+            Rectangle {
+              id: saveLockBtn
+              width: saveLockRow.implicitWidth + Style.space(20)
+              height: Style.space(32)
+              radius: 6
+              color: saveLockMa.containsMouse
+                ? Qt.rgba(root.ypYellow.r, root.ypYellow.g, root.ypYellow.b, 0.28)
+                : Qt.rgba(root.ypYellow.r, root.ypYellow.g, root.ypYellow.b, 0.16)
+              border.width: 1
+              border.color: Qt.rgba(root.ypYellow.r, root.ypYellow.g, root.ypYellow.b, 0.4)
+
+              Row {
+                id: saveLockRow
+                anchors.centerIn: parent
+                spacing: Style.space(8)
+                Text {
+                  text: "\uf023"
+                  color: root.contentForeground
+                  font.family: root.contentFontFamily
+                  font.pixelSize: Style.font.body
+                  anchors.verticalCenter: parent.verticalCenter
+                }
+                Text {
+                  text: "Save"
+                  color: root.contentForeground
+                  font.family: root.contentFontFamily
+                  font.pixelSize: Style.font.body
+                  font.bold: true
+                  anchors.verticalCenter: parent.verticalCenter
+                }
+              }
+
+              MouseArea {
+                id: saveLockMa
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: root.saveAndLock()
+              }
             }
           }
 
@@ -230,10 +460,10 @@ Panel {
               font.pixelSize: Style.font.caption
             }
 
-            // Empty-state hint when collapsed / no key yet
+            // Empty-state hint when locked / no key yet
             Text {
               width: parent.width
-              visible: liveStore && !liveStore.hasAnyKey && !root.keysMenuOpen
+              visible: liveStore && !liveStore.hasAnyKey && !root.keysUnlocked
               text: liveStore ? (liveStore.keysHint || "add ZoomInfo Client ID + Secret under Keys") : "add ZoomInfo Client ID + Secret under Keys"
               color: root.ypYellow
               opacity: 0.75
@@ -242,174 +472,7 @@ Panel {
             }
           }
 
-          // Keys disclosure — in-panel (Omarchy has no widget-settings GUI)
-          Column {
-            width: parent.width
-            spacing: Style.space(8)
-
-            Rectangle {
-              id: keysBtn
-              width: keysLabel.implicitWidth + Style.space(14)
-              height: Style.space(26)
-              radius: 6
-              color: (root.keysMenuOpen || keysMa.containsMouse)
-                ? Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
-                : root.surfaceColor
-              border.width: 1
-              border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
-
-              Text {
-                id: keysLabel
-                anchors.centerIn: parent
-                text: root.keysMenuOpen ? "Keys ▴" : "Keys ▾"
-                color: root.contentForeground
-                font.family: root.contentFontFamily
-                font.pixelSize: Style.font.bodySmall
-              }
-
-              MouseArea {
-                id: keysMa
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: root.keysMenuOpen = !root.keysMenuOpen
-              }
-            }
-
-            Rectangle {
-              visible: root.keysMenuOpen
-              width: parent.width
-              height: keysMenuCol.implicitHeight + Style.space(16)
-              radius: 8
-              color: root.surfaceColor
-              border.width: 1
-              border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
-
-              Column {
-                id: keysMenuCol
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.margins: Style.space(12)
-                spacing: Style.space(10)
-
-                // Always-visible help when Keys open
-                Text {
-                  width: parent.width
-                  text: "ZoomInfo GTM Studio → Custom Apps → Create → Client Credentials. Scopes: Data + GTM (at least). Enricherino mints Bearer tokens for you — never paste a Bearer."
-                  color: root.contentForeground
-                  opacity: 0.45
-                  font.family: root.contentFontFamily
-                  font.pixelSize: Style.font.caption
-                  wrapMode: Text.WordWrap
-                }
-
-                // ZoomInfo Client ID
-                Column {
-                  width: parent.width
-                  spacing: Style.space(4)
-                  Text {
-                    text: "Client ID"
-                    color: root.contentForeground
-                    opacity: 0.55
-                    font.family: root.contentFontFamily
-                    font.pixelSize: Style.font.caption
-                  }
-                  Rectangle {
-                    width: parent.width
-                    height: Style.space(32)
-                    radius: 6
-                    color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.04)
-                    border.width: 1
-                    border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
-                    TextInput {
-                      id: clientIdEdit
-                      anchors.fill: parent
-                      anchors.leftMargin: Style.space(10)
-                      anchors.rightMargin: Style.space(10)
-                      verticalAlignment: TextInput.AlignVCenter
-                      color: root.contentForeground
-                      font.family: root.contentFontFamily
-                      font.pixelSize: Style.font.bodySmall
-                      echoMode: TextInput.Normal
-                      selectByMouse: true
-                      clip: true
-                      text: liveStore ? liveStore.zoominfoClientId : ""
-                      onTextChanged: root.onClientIdEdited(text)
-                      Text {
-                        anchors.fill: parent
-                        visible: !clientIdEdit.text.length
-                        text: "ZoomInfo Client ID"
-                        color: root.contentForeground
-                        opacity: 0.32
-                        font.family: root.contentFontFamily
-                        font.pixelSize: Style.font.bodySmall
-                        verticalAlignment: Text.AlignVCenter
-                      }
-                    }
-                  }
-                }
-
-                // ZoomInfo Client Secret
-                Column {
-                  width: parent.width
-                  spacing: Style.space(4)
-                  Text {
-                    text: "Client Secret"
-                    color: root.contentForeground
-                    opacity: 0.55
-                    font.family: root.contentFontFamily
-                    font.pixelSize: Style.font.caption
-                  }
-                  Rectangle {
-                    width: parent.width
-                    height: Style.space(32)
-                    radius: 6
-                    color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.04)
-                    border.width: 1
-                    border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
-                    TextInput {
-                      id: clientSecretEdit
-                      anchors.fill: parent
-                      anchors.leftMargin: Style.space(10)
-                      anchors.rightMargin: Style.space(10)
-                      verticalAlignment: TextInput.AlignVCenter
-                      color: root.contentForeground
-                      font.family: root.contentFontFamily
-                      font.pixelSize: Style.font.bodySmall
-                      echoMode: TextInput.Password
-                      selectByMouse: true
-                      clip: true
-                      text: liveStore ? liveStore.zoominfoClientSecret : ""
-                      onTextChanged: root.onClientSecretEdited(text)
-                      Text {
-                        anchors.fill: parent
-                        visible: !clientSecretEdit.text.length
-                        text: "ZoomInfo Client Secret"
-                        color: root.contentForeground
-                        opacity: 0.32
-                        font.family: root.contentFontFamily
-                        font.pixelSize: Style.font.bodySmall
-                        verticalAlignment: Text.AlignVCenter
-                      }
-                    }
-                  }
-                }
-
-                Text {
-                  width: parent.width
-                  text: "Saved under ~/.config/enricherino/credentials.json (mode 0600). Not written to Omarchy bar settings."
-                  color: root.contentForeground
-                  opacity: 0.4
-                  font.family: root.contentFontFamily
-                  font.pixelSize: Style.font.caption
-                  wrapMode: Text.WordWrap
-                }
-              }
-            }
-          }
-
-          // Huge yellow FIND
+          // Huge yellow FIND — immediately under the paste field
           Rectangle {
             width: parent.width
             height: Style.space(48)
@@ -633,6 +696,17 @@ Panel {
             text: "unofficial · ZoomInfo · not a sequencer"
             color: root.contentForeground
             opacity: 0.22
+            font.family: root.contentFontFamily
+            font.pixelSize: Style.font.caption
+            wrapMode: Text.WordWrap
+          }
+
+          Text {
+            width: parent.width
+            visible: root.keysUnlocked
+            text: "Saved under ~/.config/enricherino/credentials.json (mode 0600). Not written to Omarchy bar settings."
+            color: root.contentForeground
+            opacity: 0.4
             font.family: root.contentFontFamily
             font.pixelSize: Style.font.caption
             wrapMode: Text.WordWrap
