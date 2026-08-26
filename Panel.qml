@@ -579,6 +579,7 @@ Panel {
             width: parent.width
             visible: liveStore && liveStore.lastError && liveStore.lastError.length
             text: liveStore ? liveStore.lastError : ""
+            textFormat: Text.PlainText
             color: Color.urgent
             font.family: root.contentFontFamily
             font.pixelSize: Style.font.bodySmall
@@ -589,6 +590,7 @@ Panel {
             width: parent.width
             visible: liveStore && liveStore.toastText && liveStore.toastText.length
             text: liveStore ? liveStore.toastText : ""
+            textFormat: Text.PlainText
             color: root.ypYellow
             font.family: root.contentFontFamily
             font.pixelSize: Style.font.bodySmall
@@ -617,6 +619,7 @@ Panel {
                 width: parent.width
                 visible: liveStore && liveStore.fieldValue("name").length
                 text: liveStore ? liveStore.fieldValue("name") : ""
+                textFormat: Text.PlainText
                 color: root.contentForeground
                 font.family: root.contentFontFamily
                 font.pixelSize: Style.font.body
@@ -629,6 +632,7 @@ Panel {
                 width: parent.width
                 visible: root.titleCompanyLine().length > 0
                 text: root.titleCompanyLine()
+                textFormat: Text.PlainText
                 color: root.contentForeground
                 opacity: 0.55
                 font.family: root.contentFontFamily
@@ -665,6 +669,7 @@ Panel {
                     Text {
                       width: parent.width
                       text: liveStore ? liveStore.fieldValue(modelData.key) : ""
+                      textFormat: Text.PlainText
                       color: root.contentForeground
                       font.family: root.contentFontFamily
                       font.pixelSize: Style.font.body
@@ -753,6 +758,7 @@ Panel {
                   if (!liveStore || !liveStore.lastResult) return ""
                   return (liveStore.lastResult.warnings || []).join(" · ")
                 }
+                textFormat: Text.PlainText
                 color: root.contentForeground
                 opacity: 0.4
                 font.family: root.contentFontFamily

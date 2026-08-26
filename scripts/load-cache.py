@@ -13,6 +13,7 @@ import argparse
 import os
 import stat
 import sys
+from secure_io import is_path_jailed
 
 
 def main() -> None:
@@ -23,6 +24,9 @@ def main() -> None:
     path = str(args.file or "")
     cap = int(args.cap)
     if not path or cap < 0:
+        sys.exit(1)
+    # realpath jail: refuse if the path escapes ~/.config or ~/.cache /enricherino
+    if not is_path_jailed(path):
         sys.exit(1)
 
     flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)

@@ -1,4 +1,12 @@
-# Enricherino — pre-ship checklist (0.2.4)
+# Enricherino — pre-ship checklist (0.3.8)
+
+## 0.3.8 security pass
+
+`Text.PlainText` is required (no longer N/A). Contact / error / toast / warning
+strings are neutralized at model entry and displayed as PlainText. Redirects are
+not followed on ZoomInfo calls while secrets are on the request. Credential,
+token, and last.json writes use exclusive open. Helper `--file` is realpath-jailed.
+
 
 ## PRE-SHIP note — discoverability (0.2.4)
 
@@ -21,10 +29,10 @@ phone as enrich / `ok`) and waterfall **`entered`** labels for typed-only phone.
 | 6 | No `/workspace/` in public README/DESIGN | Fixed — DESIGN scrubbed |
 | 7 | LICENSE second `Software` unquoted | Fixed |
 | 8 | README hero `![Enricherino](preview.png)`; Install+Remove; no WIP | Fixed hero |
-| 9 | FileView `setText` cache (no mkdir + `Qt.callLater` race) | OK (0.2.1) |
+| 9 | FileView `setText` cache (no mkdir + `Qt.callLater` race) | **Superseded (0.3.8)** — last.json writes go through `write-cache.py` exclusive open; FileView unused |
 | 10 | Dead `dataChanged` deleted | OK (0.2.1) |
 | 11 | Honest copy toasts | OK + exit-127 toast |
-| 12 | `Text.PlainText` | **N/A** — no remote HTML; contact fields are JSON strings |
+| 12 | `Text.PlainText` | **OK (0.3.8)** — every QML Text that shows fieldValue, titleCompanyLine, lastError, toastText, or warnings sets `textFormat: Text.PlainText`. Enrich strings neutralized at model entry (strip `<>`, collapse ASCII controls; not entity-escaped). |
 | 13 | Hover on actionable; Flickable | Fixed hover on FIND / Copy / Copy card; Flickable already |
 | 14 | Version sync manifest / README / DESIGN / preview / UA | **0.2.4**; UA from `manifest.json` |
 | 15 | Integer schema `min`/`max`/`step` | **N/A** — string + enum only |

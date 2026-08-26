@@ -52,3 +52,14 @@ bash -n scripts/lookup.py  # N/A for py; python3 -m py_compile scripts/lookup.py
 |----|----------|-----|
 | **HC-05** | HIGH | Stop FileView-reading `~/.cache/enricherino/last.json` and `~/.config/enricherino/credentials.json`. FileView `cacheFile` is writes-only (`preload: false`). Both reads go through one `scripts/load-cache.py` helper (`O_RDONLY|O_NOFOLLOW|O_NONBLOCK`, `fstat` S_ISREG, cap+1). `lookup.py` `read_text_capped` uses the same flags for credentials.json / zi_token.json (manifest stays a normal plugin-dir read). Symlink / FIFO / missing / not regular / oversize → exit 1, no body (cache: first-run; creds: `credentialsLoaded` + empty keys). Valid regular file → raw bytes, exit 0. Do not emit `{"cleared": true}` on success. |
 
+
+## 0.3.8 security pass
+
+| ID | Severity | Fix |
+|----|----------|-----|
+| **F1** | HIGH | Neutralize untrusted enrich strings at model entry (strip `<>`, collapse ASCII controls to spaces, cap 512–2000). `Text.PlainText` on fieldValue / titleCompanyLine / lastError / toastText / warnings. PRE-SHIP PlainText is OK. |
+| **F2** | HIGH | `lookup.py` pins `https://api.zoominfo.com` and refuses 30x (no Authorization copy, token POST is not followed as GET). |
+| **F3** | HIGH | Exclusive write (`O_EXCL` temp + fsync + `os.replace`) for credentials.json, zi_token.json, last.json. Dest dir 0700. FileView unused for cache writes. |
+| **F4** | MED | After JSON parse: reject huge records; clamp display fields to 512/2000. |
+| **F5** | MED | `Process.environment` PATH=`/usr/bin:/bin` plus existing PYTHONDONTWRITEBYTECODE / ZoomInfo env. `python3 -B` stays. |
+| **F6** | MED | `load-cache.py --file` and `write-cache.py --file` realpath-jail under `~/.config/enricherino` or `~/.cache/enricherino`. lookup.py token/cred paths checked the same way. |

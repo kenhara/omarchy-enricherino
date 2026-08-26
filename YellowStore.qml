@@ -39,11 +39,13 @@ Item {
   readonly property string lookupPath: pluginDir + "/scripts/lookup.py"
   readonly property string saveCredPath: pluginDir + "/scripts/save_credentials.py"
   readonly property string loadCachePath: pluginDir + "/scripts/load-cache.py"
+  readonly property string writeCachePath: pluginDir + "/scripts/write-cache.py"
   readonly property int maxLookupBytes: 1048576
   readonly property int maxFileBytes: 1048576
 
   // Pending JSON for save_credentials.py stdin (one-shot; not mirrored to settings).
   property string _pendingCredJson: ""
+  property string _pendingCacheJson: ""
   property bool credentialsLoaded: false
   property bool credentialsMigrated: false
   property string cacheBuf: ""
@@ -131,7 +133,7 @@ Item {
       return
     }
     saveCredProc.command = ["python3", "-B", store.saveCredPath]
-    saveCredProc.environment = ({ "PYTHONDONTWRITEBYTECODE": "1" })
+    saveCredProc.environment = ({ "PYTHONDONTWRITEBYTECODE": "1", "PATH": "/usr/bin:/bin" })
     saveCredProc.stdinEnabled = true
     saveCredProc.running = true
   }
@@ -277,7 +279,7 @@ Item {
   function findFromPaste() {
     var text = String(store.pasteInput || "").trim()
     if (!text.length) {
-      store.lastError = "Paste something to look up"
+      store.setLastError("Paste something to look up")
       store.showToast(store.lastError)
       return
     }
@@ -319,8 +321,28 @@ Item {
     return Math.floor(sec / 86400) + "d ago"
   }
 
+  function neutralizeUntrusted(s, cap) {
+    var t = String(s == null ? "" : s)
+    t = t.replace(/[<>]/g, "")
+    t = t.replace(/[\x00-\x1F\x7F]/g, " ")
+    cap = cap || 512
+    if (t.length > cap)
+      t = t.substring(0, cap)
+    return t
+  }
+
+  function fieldCapFor(key) {
+    if (key === "linkedin" || key === "twitter" || key === "profile_url")
+      return 2000
+    return 512
+  }
+
+  function setLastError(msg) {
+    store.lastError = store.neutralizeUntrusted(msg, 512)
+  }
+
   function showToast(msg) {
-    store.toastText = String(msg || "")
+    store.toastText = store.neutralizeUntrusted(msg, 512)
     toastClear.restart()
   }
 
@@ -352,7 +374,8 @@ Item {
     var r = store.lastResult && store.lastResult.result ? store.lastResult.result : null
     if (!r) return ""
     var v = r[key]
-    return v === undefined || v === null ? "" : String(v)
+    if (v === undefined || v === null) return ""
+    return store.neutralizeUntrusted(String(v), store.fieldCapFor(key))
   }
 
   function fieldSource(key) {
@@ -428,17 +451,17 @@ Item {
       return
     var verr = store.validateInputs()
     if (verr) {
-      store.lastError = verr
+      store.setLastError(verr)
       store.showToast(verr)
       return
     }
     if (!store.hasAnyKey) {
-      store.lastError = store.keysHint || "add ZoomInfo Client ID + Secret under Keys"
+      store.setLastError(store.keysHint || "add ZoomInfo Client ID + Secret under Keys")
       store.showToast(store.lastError)
       return
     }
     store.loading = true
-    store.lastError = ""
+    store.setLastError("")
     store.lookupBuf = ""
     var mode = store.normalizeInputMode(store.inputMode)
     var jsonBlob = JSON.stringify(store.buildInputs())
@@ -456,7 +479,8 @@ Item {
     lookupProc.environment = ({
       "ZOOMINFO_CLIENT_ID": cid,
       "ZOOMINFO_CLIENT_SECRET": csec,
-      "PYTHONDONTWRITEBYTECODE": "1"
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PATH": "/usr/bin:/bin"
     })
     lookupProc.running = true
     lookupWatchdog.restart()
@@ -494,6 +518,30 @@ Item {
     return out
   }
 
+  function sanitizeResultModel(obj) {
+    if (!obj || typeof obj !== "object") return obj
+    var keys = ["name", "title", "company", "email", "phone", "linkedin", "twitter", "profile_url"]
+    if (obj.result && typeof obj.result === "object") {
+      for (var i = 0; i < keys.length; i++) {
+        var k = keys[i]
+        if (obj.result[k] !== undefined && obj.result[k] !== null)
+          obj.result[k] = store.neutralizeUntrusted(String(obj.result[k]), store.fieldCapFor(k))
+      }
+    }
+    var lists = ["errors", "warnings", "raw_notes"]
+    for (var li = 0; li < lists.length; li++) {
+      var lk = lists[li]
+      var arr = obj[lk]
+      if (!arr || !arr.length) continue
+      var cleaned = []
+      var n = Math.min(arr.length, 16)
+      for (var j = 0; j < n; j++)
+        cleaned.push(store.neutralizeUntrusted(String(arr[j]), 512))
+      obj[lk] = cleaned
+    }
+    return obj
+  }
+
   function buildCacheObject(resultObj, atIso) {
     return {
       version: 1,
@@ -505,18 +553,37 @@ Item {
     }
   }
 
+  function persistCacheBody(body) {
+    store._pendingCacheJson = String(body || "")
+    if (writeCacheProc.running)
+      return
+    writeCacheProc.command = ["python3", "-B", store.writeCachePath, "--file", store.cachePath]
+    writeCacheProc.environment = ({ "PYTHONDONTWRITEBYTECODE": "1", "PATH": "/usr/bin:/bin" })
+    writeCacheProc.stdinEnabled = true
+    writeCacheProc.running = true
+  }
+
+  function onWriteCacheRunningChanged() {
+    if (!writeCacheProc.running) return
+    var blob = store._pendingCacheJson || ""
+    if (!blob.length) {
+      writeCacheProc.stdinEnabled = false
+      return
+    }
+    try {
+      writeCacheProc.write(blob)
+    } catch (e) {}
+    writeCacheProc.stdinEnabled = false
+    store._pendingCacheJson = ""
+  }
+
   function persistToDisk(obj) {
     var body = JSON.stringify(obj || store.buildCacheObject(), null, 2) + "\n"
-    try {
-      // FileView creates parent dirs (mkpath) on setText — no ensureCacheDir Process.
-      cacheFile.setText(body)
-    } catch (e) {}
+    store.persistCacheBody(body)
   }
 
   function persistClear() {
-    try {
-      cacheFile.setText(JSON.stringify({ version: 1, cleared: true }, null, 2) + "\n")
-    } catch (e) {}
+    store.persistCacheBody(JSON.stringify({ version: 1, cleared: true }, null, 2) + "\n")
   }
 
   function applyCachedPayload(obj, source) {
@@ -527,9 +594,9 @@ Item {
     // Accept either wrapped cache { result: <lookup json> } or raw lookup json
     if (res.result === undefined && res.ok === undefined && obj.ok !== undefined)
       res = obj
-    store.lastResult = store.stripSecrets(res)
+    store.lastResult = store.sanitizeResultModel(store.stripSecrets(res))
     store.lookedUpAt = obj.lookedUpAt || ""
-    store.lastError = ""
+    store.setLastError("")
     return true
   }
 
@@ -540,7 +607,7 @@ Item {
     store.lookupBuf = ""
     if (!raw.length) {
       if (!store.lastError)
-        store.lastError = "lookup produced no output (exit " + exitCode + ")"
+        store.setLastError("lookup produced no output (exit " + exitCode + ")")
       return
     }
     // Prefer last non-empty JSON line
@@ -557,13 +624,13 @@ Item {
       blob = raw.trim()
     try {
       var obj = JSON.parse(blob)
-      store.lastResult = store.stripSecrets(obj)
+      store.lastResult = store.sanitizeResultModel(store.stripSecrets(obj))
       store.lookedUpAt = new Date().toISOString()
       var errs = obj.errors || []
       if (errs && errs.length)
-        store.lastError = String(errs[0])
+        store.setLastError(String(errs[0]))
       else
-        store.lastError = ""
+        store.setLastError("")
       if (obj.ok) {
         store.showToast("Lookup done")
         // Cache successful results only — never secrets.
@@ -574,13 +641,13 @@ Item {
         store.showToast("No match")
       }
     } catch (e) {
-      store.lastError = "lookup JSON parse failed"
+      store.setLastError("lookup JSON parse failed")
     }
   }
 
   function clearResult() {
     store.lastResult = null
-    store.lastError = ""
+    store.setLastError("")
     store.lookedUpAt = ""
     store.persistClear()
     store.showToast("Cleared")
@@ -631,26 +698,34 @@ Item {
         lookupProc.running = false
         store.lookupBuf = ""
         store.loading = false
-        store.lastError = "lookup timed out"
+        store.setLastError("lookup timed out")
         store.showToast(store.lastError)
       }
     }
   }
 
-  FileView {
-    id: cacheFile
-    path: store.cachePath
-    watchChanges: false
-    printErrors: false
-    preload: false
-    // Writes only (setText). Reads go through load-cache.py (O_NOFOLLOW|O_NONBLOCK).
+  Process {
+    id: writeCacheProc
+    running: false
+    stdinEnabled: true
+    onRunningChanged: store.onWriteCacheRunningChanged()
+    stdout: SplitParser {
+      onRead: function(line) { /* ok json — intentionally quiet */ }
+    }
+    stderr: SplitParser {
+      onRead: function(line) { /* cache write failed — last.json is not creds */ }
+    }
+    onExited: function(exitCode, exitStatus) {
+      if (store._pendingCacheJson && store._pendingCacheJson.length)
+        store.persistCacheBody(store._pendingCacheJson)
+    }
   }
 
   Process {
     id: cacheReadProc
     running: false
     command: ["python3", "-B", store.loadCachePath, "--file", store.cachePath, "--cap", String(store.maxFileBytes)]
-    environment: ({ "PYTHONDONTWRITEBYTECODE": "1" })
+    environment: ({ "PYTHONDONTWRITEBYTECODE": "1", "PATH": "/usr/bin:/bin" })
     stdout: SplitParser {
       splitMarker: ""
       onRead: function(chunk) {
@@ -678,7 +753,7 @@ Item {
     id: credReadProc
     running: false
     command: ["python3", "-B", store.loadCachePath, "--file", store.credPath, "--cap", String(store.maxFileBytes)]
-    environment: ({ "PYTHONDONTWRITEBYTECODE": "1" })
+    environment: ({ "PYTHONDONTWRITEBYTECODE": "1", "PATH": "/usr/bin:/bin" })
     stdout: SplitParser {
       splitMarker: ""
       onRead: function(chunk) {
@@ -743,6 +818,7 @@ Item {
   Process {
     id: tokenRmProc
     running: false
+    environment: ({ "PATH": "/usr/bin:/bin" })
     stdout: SplitParser {
       onRead: function(line) { /* quiet */ }
     }
@@ -754,6 +830,7 @@ Item {
   Process {
     id: copyProc
     running: false
+    environment: ({ "PATH": "/usr/bin:/bin" })
     onExited: function(exitCode, exitStatus) {
       if (exitCode === 0)
         store.showToast("Copied")
@@ -771,7 +848,7 @@ Item {
       onRead: function(line) {
         if (store.lookupBuf.length + line.length + 1 > store.maxLookupBytes) {
           store.lookupBuf = ""
-          store.lastError = "lookup output too large — aborted"
+          store.setLastError("lookup output too large — aborted")
           lookupProc.running = false
           return
         }
@@ -784,7 +861,7 @@ Item {
         if (s.length > 2048)
           s = s.substring(0, 2048)
         if (s.length)
-          store.lastError = s
+          store.setLastError(s)
       }
     }
     onExited: function(exitCode, exitStatus) {
