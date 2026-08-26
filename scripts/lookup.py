@@ -25,6 +25,11 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+_SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+from secure_io import ensure_dir_mode, is_path_jailed, jail_roots, write_exclusive
+
 ZOOMINFO_TOKEN = "https://api.zoominfo.com/gtm/oauth/v1/token"
 ZOOMINFO_ENRICH = "https://api.zoominfo.com/gtm/data/v1/contacts/enrich"
 PLUGIN_ID = "kenhara.enricherino"
@@ -33,6 +38,15 @@ CREDENTIALS_PATH = Path.home() / ".config" / "enricherino" / "credentials.json"
 TOKEN_SKEW_SEC = 60
 MAX_HTTP_BYTES = 4 * 1024 * 1024   # 4 MiB
 MAX_FILE_BYTES = 1 * 1024 * 1024   # 1 MiB
+MAX_RECORD_CHARS = 256 * 1024
+HUGE_FIELD_CHARS = 8192
+DISPLAY_FIELD_CAP = 512
+URL_FIELD_CAP = 2000
+ERROR_ITEM_CAP = 512
+MAX_ERROR_ITEMS = 16
+ZOOMINFO_PINNED_SCHEME = "https"
+ZOOMINFO_PINNED_HOST = "api.zoominfo.com"
+_ASCII_CTRL_RE = re.compile(r"[\x00-\x1f\x7f]")
 
 
 def read_text_capped(path: Path, limit: int = MAX_FILE_BYTES) -> str | None:
@@ -82,11 +96,101 @@ def read_manifest_version() -> str:
             return ver
     except Exception:
         pass
-    return "0.3.7"
+    return "0.3.8"
 
 
 VERSION = read_manifest_version()
 USER_AGENT = f"Enricherino/{VERSION} (Omarchy unofficial; {PLUGIN_ID})"
+
+FIELD_CAPS = {
+    "name": DISPLAY_FIELD_CAP,
+    "title": DISPLAY_FIELD_CAP,
+    "company": DISPLAY_FIELD_CAP,
+    "email": DISPLAY_FIELD_CAP,
+    "phone": DISPLAY_FIELD_CAP,
+    "linkedin": URL_FIELD_CAP,
+    "twitter": URL_FIELD_CAP,
+    "profile_url": URL_FIELD_CAP,
+}
+
+
+def sanitize_untrusted_text(value: Any, cap: int = DISPLAY_FIELD_CAP) -> str:
+    """Neutralize untrusted enrich/API strings at model entry.
+
+    Strip ``<`` ``>``; collapse ASCII controls to spaces; do not entity-escape.
+    Cap length. Empty after cleanup stays empty.
+    """
+    if value is None:
+        return ""
+    s = str(value).replace("<", "").replace(">", "")
+    s = _ASCII_CTRL_RE.sub(" ", s)
+    if cap > 0 and len(s) > cap:
+        s = s[:cap]
+    return s
+
+
+def payload_too_large(obj: Any, limit: int = MAX_RECORD_CHARS) -> bool:
+    try:
+        return len(json.dumps(obj, ensure_ascii=False)) > limit
+    except Exception:
+        return True
+
+
+def is_pinned_zoominfo_url(url: str) -> bool:
+    try:
+        p = urlparse(url)
+    except Exception:
+        return False
+    if (p.scheme or "").lower() != ZOOMINFO_PINNED_SCHEME:
+        return False
+    host = (p.hostname or "").lower()
+    return host == ZOOMINFO_PINNED_HOST
+
+
+def request_carries_secrets(headers: dict[str, str], body: bytes | None) -> bool:
+    for k in headers:
+        if str(k).lower() == "authorization":
+            return True
+    if body:
+        low = body.lower()
+        if b"client_secret" in low or b"client_id" in low:
+            return True
+    return False
+
+
+def may_follow_redirect(headers: dict[str, str], body: bytes | None, newurl: str) -> bool:
+    """Never follow when Authorization/client secrets are on the request.
+
+    Token mint POST must not become a followed GET. Off-host Location is refused.
+    Same-host 30x is also refused so secrets never copy across a hop.
+    """
+    if request_carries_secrets(headers, body):
+        return False
+    if not is_pinned_zoominfo_url(newurl):
+        return False
+    return False
+
+
+class RefuseRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Do not emit a follow-up Request (Authorization is never copied)."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: ANN001
+        raise urllib.error.HTTPError(
+            getattr(req, "full_url", "") or "",
+            int(code),
+            "redirect refused",
+            headers,
+            fp,
+        )
+
+
+def build_api_opener() -> urllib.request.OpenerDirector:
+    return urllib.request.build_opener(RefuseRedirectHandler)
+
+
+def path_in_default_jail(path: Path) -> bool:
+    return is_path_jailed(path, jail_roots())
+
 
 RESULT_FIELDS = (
     "name",
@@ -161,6 +265,16 @@ def split_name(full: str | None) -> tuple[str | None, str | None]:
     return parts[0], " ".join(parts[1:])
 
 
+def _parse_http_body(raw: str, code: int) -> tuple[int, Any, str]:
+    try:
+        parsed: Any = json.loads(raw) if raw else {}
+    except json.JSONDecodeError:
+        parsed = {"_raw": raw}
+    if isinstance(parsed, (dict, list)) and payload_too_large(parsed):
+        return 0, {"error": "record too large"}, "record too large"
+    return code, parsed, raw
+
+
 def http_request(
     method: str,
     url: str,
@@ -168,30 +282,39 @@ def http_request(
     body: bytes | None = None,
     timeout: float = 45.0,
 ) -> tuple[int, Any, str]:
+    if not is_pinned_zoominfo_url(url):
+        return 0, {"error": "url not pinned"}, "url not pinned"
     hdrs = dict(headers)
     hdrs.setdefault("User-Agent", USER_AGENT)
+    # Refuse 30x whenever secrets are on the request (token body or Authorization).
+    # Opener never follows; Authorization is never copied to Location.
     req = urllib.request.Request(url, data=body, headers=hdrs, method=method)
+    opener = build_api_opener()
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
+        with opener.open(req, timeout=timeout) as resp:
             raw_bytes = resp.read(MAX_HTTP_BYTES + 1)
             if len(raw_bytes) > MAX_HTTP_BYTES:
                 return 0, {"error": "response too large"}, "response too large"
             raw = raw_bytes.decode("utf-8", errors="replace")
-            code = getattr(resp, "status", 200) or 200
-            try:
-                return code, json.loads(raw) if raw else {}, raw
-            except json.JSONDecodeError:
-                return code, {"_raw": raw}, raw
+            code = int(getattr(resp, "status", 200) or 200)
+            if 300 <= code < 400:
+                return 0, {"error": "redirect refused"}, "redirect refused"
+            return _parse_http_body(raw, code)
     except urllib.error.HTTPError as e:
+        code = int(e.code)
+        if 300 <= code < 400:
+            return 0, {"error": "redirect refused"}, "redirect refused"
         raw_bytes = e.read(MAX_HTTP_BYTES + 1) if e.fp else b""
         if len(raw_bytes) > MAX_HTTP_BYTES:
-            return int(e.code), {"error": "error response too large"}, "error response too large"
+            return code, {"error": "error response too large"}, "error response too large"
         raw = raw_bytes.decode("utf-8", errors="replace")
         try:
             parsed = json.loads(raw) if raw else {"error": str(e.reason)}
         except json.JSONDecodeError:
             parsed = {"_raw": raw or str(e.reason)}
-        return int(e.code), parsed, raw
+        if isinstance(parsed, (dict, list)) and payload_too_large(parsed):
+            return 0, {"error": "record too large"}, "record too large"
+        return code, parsed, raw
     except Exception as e:
         return 0, {"error": str(e)}, str(e)
 
@@ -237,7 +360,15 @@ def merge_field(
         return
     if field in ("linkedin", "twitter", "profile_url"):
         value = normalize_profile_url(str(value)) or value
-    out["result"][field] = value if not isinstance(value, str) else str(value).strip()
+    if isinstance(value, str):
+        raw = value.strip()
+        if len(raw) > HUGE_FIELD_CHARS:
+            out.setdefault("_huge_record", True)
+            return
+        value = sanitize_untrusted_text(raw, FIELD_CAPS.get(field, DISPLAY_FIELD_CAP))
+        if is_blank(value):
+            return
+    out["result"][field] = value
     out["sources"][field] = provider
 
 
@@ -353,6 +484,8 @@ def _zi_errors_detail(payload: Any) -> str | None:
 
 def load_cached_token() -> str | None:
     try:
+        if not path_in_default_jail(TOKEN_CACHE_PATH):
+            return None
         if not TOKEN_CACHE_PATH.is_file():
             return None
         raw = read_text_capped(TOKEN_CACHE_PATH)
@@ -370,21 +503,19 @@ def load_cached_token() -> str | None:
 
 def save_cached_token(access_token: str, expires_in: int | float) -> None:
     try:
-        TOKEN_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        if not path_in_default_jail(TOKEN_CACHE_PATH):
+            return
+        ensure_dir_mode(TOKEN_CACHE_PATH.parent)
         expires_at = time.time() + max(0.0, float(expires_in) - TOKEN_SKEW_SEC)
         payload = {
             "access_token": access_token,
             "expires_at": expires_at,
             "cached_at": time.time(),
         }
-        TOKEN_CACHE_PATH.write_text(
+        write_exclusive(
+            TOKEN_CACHE_PATH,
             json.dumps(payload, ensure_ascii=False) + "\n",
-            encoding="utf-8",
         )
-        try:
-            os.chmod(TOKEN_CACHE_PATH, 0o600)
-        except Exception:
-            pass
     except Exception:
         pass
 
@@ -431,6 +562,9 @@ def mint_zoominfo_token(
 
 def apply_zoominfo_payload(out: dict[str, Any], payload: Any) -> None:
     if not isinstance(payload, dict):
+        return
+    if payload_too_large(payload):
+        out["errors"].append("enrich record too large — rejected")
         return
     meta = payload.get("meta")
     if isinstance(meta, dict):
@@ -498,7 +632,9 @@ def apply_zoominfo_payload(out: dict[str, Any], payload: Any) -> None:
     if isinstance(imeta, dict):
         match = imeta.get("matchStatus")
     if match and str(match).upper() in ("NO_MATCH", "NONE"):
-        out["warnings"].append(f"ZoomInfo matchStatus={match}")
+        out["warnings"].append(
+            sanitize_untrusted_text(f"ZoomInfo matchStatus={match}", ERROR_ITEM_CAP)
+        )
 
 
 def zoominfo_attrs_for_mode(mode: str, inputs: dict[str, Any]) -> dict[str, Any] | None:
@@ -645,6 +781,8 @@ def has_enriched_result(out: dict[str, Any]) -> bool:
 def load_file_credentials() -> tuple[str, str]:
     """Load Client ID/Secret from ~/.config/enricherino/credentials.json if present."""
     try:
+        if not path_in_default_jail(CREDENTIALS_PATH):
+            return "", ""
         if not CREDENTIALS_PATH.is_file():
             return "", ""
         raw = read_text_capped(CREDENTIALS_PATH)
@@ -680,11 +818,52 @@ def resolve_credentials() -> tuple[str, str]:
     return cid or file_cid, csec or file_csec
 
 
+def _cap_string_list(items: Any, cap: int = ERROR_ITEM_CAP) -> list[str]:
+    out: list[str] = []
+    if not isinstance(items, list):
+        return out
+    for it in items[:MAX_ERROR_ITEMS]:
+        s = sanitize_untrusted_text(it, cap)
+        if s:
+            out.append(s)
+    return out
+
+
+def sanitize_output(out: dict[str, Any]) -> dict[str, Any]:
+    """Per-field / per-record caps after JSON parse. Huge record → reject."""
+    if out.pop("_huge_record", False):
+        out["result"] = {f: None for f in RESULT_FIELDS}
+        out["sources"] = {f: None for f in RESULT_FIELDS}
+        out.setdefault("errors", []).append("enrich record too large — rejected")
+    result = out.get("result") or {}
+    huge = False
+    for f in RESULT_FIELDS:
+        v = result.get(f)
+        if is_blank(v):
+            continue
+        raw = str(v)
+        if len(raw) > HUGE_FIELD_CHARS:
+            huge = True
+            break
+        result[f] = sanitize_untrusted_text(raw, FIELD_CAPS.get(f, DISPLAY_FIELD_CAP))
+    if huge:
+        out["result"] = {f: None for f in RESULT_FIELDS}
+        out["sources"] = {f: None for f in RESULT_FIELDS}
+        out.setdefault("errors", []).append("enrich record too large — rejected")
+    else:
+        out["result"] = result
+    out["errors"] = _cap_string_list(out.get("errors"))
+    out["warnings"] = _cap_string_list(out.get("warnings"))
+    out["raw_notes"] = _cap_string_list(out.get("raw_notes"))
+    return out
+
+
 def run(mode: str, inputs: dict[str, Any]) -> dict[str, Any]:
     out = empty_result()
     out["mode"] = mode
     client_id, client_secret = resolve_credentials()
     zoominfo_lookup(mode, inputs, client_id, client_secret, out)
+    sanitize_output(out)
     rejected = any("rejected" in e.lower() for e in out["errors"])
     out["ok"] = has_enriched_result(out) and not rejected
     return out

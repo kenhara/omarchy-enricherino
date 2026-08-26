@@ -14,6 +14,8 @@ import os
 import sys
 from pathlib import Path
 
+from secure_io import ensure_dir_mode, is_path_jailed, jail_roots, write_exclusive
+
 CRED_DIR = Path.home() / ".config" / "enricherino"
 CRED_PATH = CRED_DIR / "credentials.json"
 MAX_STDIN_BYTES = 64 * 1024
@@ -66,23 +68,11 @@ def main() -> int:
     }
 
     try:
-        CRED_DIR.mkdir(parents=True, exist_ok=True)
-        try:
-            os.chmod(CRED_DIR, 0o700)
-        except Exception:
-            pass
-        # Write via temp + replace so we never leave a half-written world-readable file.
-        tmp = CRED_PATH.with_suffix(".json.tmp")
-        tmp.write_text(json.dumps(payload, ensure_ascii=False) + "\n", encoding="utf-8")
-        try:
-            os.chmod(tmp, 0o600)
-        except Exception:
-            pass
-        tmp.replace(CRED_PATH)
-        try:
-            os.chmod(CRED_PATH, 0o600)
-        except Exception:
-            pass
+        if not is_path_jailed(CRED_PATH, jail_roots()):
+            sys.stderr.write("save_credentials: path not allowed\n")
+            return 1
+        ensure_dir_mode(CRED_DIR)
+        write_exclusive(CRED_PATH, json.dumps(payload, ensure_ascii=False) + "\n")
     except Exception as e:
         sys.stderr.write(f"save_credentials: write failed: {e}\n")
         return 1
